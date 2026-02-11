@@ -2,8 +2,9 @@ services:
   - type: web
     name: canstory-backend
     env: node
-    buildCommand: npm install
+    buildCommand: npm install --prefix web
     startCommand: node web/server.js
+    rootDir: .
     envVars:
       - key: VITE_SUPABASE_URL
         value: https://mezoaqtjljcmbuanzzkj.supabase.co
@@ -20,6 +21,7 @@ services:
     name: canstory-frontend
     buildCommand: cd web && npm install && npm run build
     staticPublishPath: web/dist
+    rootDir: .
     envVars:
       - key: VITE_API_BASE_URL
         value: https://canstory-backend.onrender.com
