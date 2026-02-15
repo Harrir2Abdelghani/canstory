@@ -2,13 +2,17 @@ import axios, { AxiosInstance, AxiosError } from 'axios'
 import { useAuthStore } from '@/stores/auth-store'
 
 const getApiBaseUrl = () => {
-  const base = import.meta.env.VITE_API_URL || ''
-  if (base && base.startsWith('http')) return base
-  return typeof window !== 'undefined' ? `${window.location.origin}/api` : '/api'
+  // Use VITE_API_URL or local dev URL during development
+  if (import.meta.env.DEV) {
+    const base = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001'
+    return base.endsWith('/api') ? base : `${base.replace(/\/$/, '')}/api`
+  }
+  // In production, always use the relative /api proxy to ensure cookies/session are maintained on the same domain
+  return '/api'
 }
 
 class ApiClient {
-  private client: AxiosInstance
+  public client: AxiosInstance
 
   constructor() {
     this.client = axios.create({

@@ -1,18 +1,5 @@
-import axios from 'axios'
+import { apiClient } from '@/lib/api-client'
 import { z } from 'zod'
-
-const getApiBaseUrl = () => {
-  const base = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || ''
-  if (base && base.startsWith('http')) return base.replace(/\/api\/?$/, '') || base
-  return typeof window !== 'undefined' ? window.location.origin : ''
-}
-
-const apiClient = axios.create({
-  baseURL: getApiBaseUrl(),
-  maxBodyLength: Infinity,
-  maxContentLength: Infinity,
-  withCredentials: true,
-})
 
 export type AnnuaireRole = 'medecin' | 'centre_cancer' | 'psychologue' | 'laboratoire' | 'pharmacie' | 'association'
 export type AnnuaireStatus = 'pending' | 'approved' | 'rejected'
@@ -198,14 +185,14 @@ export class AnnuaireService {
     if (params.status) queryParams.append('status', params.status)
     if (params.wilaya) queryParams.append('wilaya', params.wilaya)
 
-    const response = await apiClient.get(`/api/admin/annuaire?${queryParams.toString()}`)
+    const response = await apiClient.instance.get(`/admin/annuaire?${queryParams.toString()}`)
     const entries = response.data?.data || []
     return entries.map((entry: any) => annuaireEntrySchema.parse(entry))
   }
 
 
   async createAnnuaireEntry(payload: CreateAnnuairePayload): Promise<{ entry: AnnuaireEntry; tempPassword?: string }> {
-    const response = await apiClient.post('/api/admin/annuaire', payload)
+    const response = await apiClient.instance.post('/admin/annuaire', payload)
     return {
       entry: annuaireEntrySchema.parse(response.data?.data),
       tempPassword: response.data?.tempPassword,
@@ -213,22 +200,22 @@ export class AnnuaireService {
   }
 
   async updateAnnuaireEntry(entryId: string, payload: UpdateAnnuairePayload): Promise<AnnuaireEntry> {
-    const response = await apiClient.patch(`/api/admin/annuaire/${entryId}`, payload)
+    const response = await apiClient.instance.patch(`/admin/annuaire/${entryId}`, payload)
     return annuaireEntrySchema.parse(response.data?.data)
   }
 
   async updateAnnuaireStatus(entryId: string, status: AnnuaireStatus): Promise<AnnuaireEntry> {
-    const response = await apiClient.patch(`/api/admin/annuaire/${entryId}/status`, { status })
+    const response = await apiClient.instance.patch(`/admin/annuaire/${entryId}/status`, { status })
     return annuaireEntrySchema.parse(response.data?.data)
   }
 
   async deleteAnnuaireEntry(entryId: string): Promise<void> {
-    await apiClient.delete(`/api/admin/annuaire/${entryId}`)
+    await apiClient.instance.delete(`/admin/annuaire/${entryId}`)
   }
 
   async getDoctorSpec(entryId: string): Promise<DoctorSpec | null> {
     try {
-      const response = await apiClient.get(`/api/admin/annuaire/${entryId}/doctor-spec`)
+      const response = await apiClient.instance.get(`/admin/annuaire/${entryId}/doctor-spec`)
       return doctorSpecSchema.parse(response.data?.data)
     } catch {
       return null
@@ -237,7 +224,7 @@ export class AnnuaireService {
 
   async getCancerCenter(entryId: string): Promise<CancerCenter | null> {
     try {
-      const response = await apiClient.get(`/api/admin/annuaire/${entryId}/cancer-center`)
+      const response = await apiClient.instance.get(`/admin/annuaire/${entryId}/cancer-center`)
       return cancerCenterSchema.parse(response.data?.data)
     } catch {
       return null
@@ -246,7 +233,7 @@ export class AnnuaireService {
 
   async getPsychologist(entryId: string): Promise<Psychologist | null> {
     try {
-      const response = await apiClient.get(`/api/admin/annuaire/${entryId}/psychologist`)
+      const response = await apiClient.instance.get(`/admin/annuaire/${entryId}/psychologist`)
       return psychologistSchema.parse(response.data?.data)
     } catch {
       return null
@@ -255,7 +242,7 @@ export class AnnuaireService {
 
   async getLaboratory(entryId: string): Promise<Laboratory | null> {
     try {
-      const response = await apiClient.get(`/api/admin/annuaire/${entryId}/laboratory`)
+      const response = await apiClient.instance.get(`/admin/annuaire/${entryId}/laboratory`)
       return laboratorySchema.parse(response.data?.data)
     } catch {
       return null
@@ -264,7 +251,7 @@ export class AnnuaireService {
 
   async getPharmacy(entryId: string): Promise<Pharmacy | null> {
     try {
-      const response = await apiClient.get(`/api/admin/annuaire/${entryId}/pharmacy`)
+      const response = await apiClient.instance.get(`/admin/annuaire/${entryId}/pharmacy`)
       return pharmacySchema.parse(response.data?.data)
     } catch {
       return null
@@ -273,7 +260,7 @@ export class AnnuaireService {
 
   async getAssociation(entryId: string): Promise<Association | null> {
     try {
-      const response = await apiClient.get(`/api/admin/annuaire/${entryId}/association`)
+      const response = await apiClient.instance.get(`/admin/annuaire/${entryId}/association`)
       return associationSchema.parse(response.data?.data)
     } catch {
       return null

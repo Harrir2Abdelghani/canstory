@@ -1,23 +1,5 @@
-import axios from 'axios'
+import { apiClient } from '@/lib/api-client'
 import { z } from 'zod'
-
-const getApiBaseUrl = () => {
-  const raw = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '').trim()
-  if (raw && raw.startsWith('http')) {
-    try {
-      const url = new URL(raw)
-      return url.origin
-    } catch {
-      /* fallthrough */
-    }
-  }
-  return typeof window !== 'undefined' ? window.location.origin : ''
-}
-
-const apiClient = axios.create({
-  baseURL: getApiBaseUrl(),
-  withCredentials: true,
-})
 
 // Schema for user management
 const userRoleSchema = z.union([
@@ -104,7 +86,7 @@ class AdminUsersService {
    */
   async getUsers(params: GetUsersParams = {}): Promise<UsersResponse> {
     try {
-      const response = await apiClient.get('/api/admin/users', {
+      const response = await apiClient.instance.get('/admin/users', {
         params: {
           page: params.page || 1,
           pageSize: params.pageSize || 10,
@@ -131,7 +113,7 @@ class AdminUsersService {
    */
   async getUserById(userId: string): Promise<AdminUser> {
     try {
-      const response = await apiClient.get(`/api/admin/users?id=${userId}`)
+      const response = await apiClient.instance.get(`/admin/users?id=${userId}`)
       return adminUserSchema.parse(response.data[0])
     } catch (error) {
       console.error('Error fetching user:', error)
@@ -144,7 +126,7 @@ class AdminUsersService {
    */
   async updateUserRole(userId: string, role: string): Promise<AdminUser> {
     try {
-      const response = await apiClient.patch(`/api/admin/users/${userId}`, {
+      const response = await apiClient.instance.patch(`/admin/users/${userId}`, {
         role,
       })
       return adminUserSchema.parse(response.data.data)
@@ -159,7 +141,7 @@ class AdminUsersService {
    */
   async updateUserStatus(userId: string, is_active: boolean): Promise<void> {
     try {
-      await apiClient.patch(`/api/admin/users/${userId}`, {
+      await apiClient.instance.patch(`/admin/users/${userId}`, {
         is_active,
       })
     } catch (error) {
@@ -187,7 +169,7 @@ class AdminUsersService {
    */
   async deleteUser(userId: string): Promise<void> {
     try {
-      await apiClient.delete(`/api/admin/users/${userId}`)
+      await apiClient.instance.delete(`/admin/users/${userId}`)
     } catch (error) {
       console.error('Error deleting user:', error)
       throw error
@@ -199,7 +181,7 @@ class AdminUsersService {
    */
   async updateUser(userId: string, payload: UpdateAdminUserPayload): Promise<AdminUser> {
     try {
-      const response = await apiClient.patch(`/api/admin/users/${userId}`, payload)
+      const response = await apiClient.instance.patch(`/admin/users/${userId}`, payload)
       return adminUserSchema.parse(response.data.data)
     } catch (error) {
       console.error('Error updating user:', error)
@@ -216,7 +198,7 @@ class AdminUsersService {
     inactive: number
   }> {
     try {
-      const response = await apiClient.get('/api/admin/users?select=count()')
+      const response = await apiClient.instance.get('/admin/users?select=count()')
       return response.data
     } catch (error) {
       console.error('Error fetching user stats:', error)
@@ -229,7 +211,7 @@ class AdminUsersService {
    */
   async createUser(payload: CreateAdminUserPayload): Promise<{ user: AdminUser; tempPassword?: string }> {
     try {
-      const response = await apiClient.post('/api/admin/users', payload)
+      const response = await apiClient.instance.post('/admin/users', payload)
       return {
         user: adminUserSchema.parse(response.data.data),
         tempPassword: response.data.tempPassword,

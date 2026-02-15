@@ -1,22 +1,5 @@
 import axios from 'axios'
-
-const getApiBaseUrl = () => {
-  const raw = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '').trim()
-  if (raw && raw.startsWith('http')) {
-    try {
-      const url = new URL(raw)
-      return url.origin
-    } catch {
-      /* fallthrough */
-    }
-  }
-  return typeof window !== 'undefined' ? window.location.origin : ''
-}
-
-const apiClient = axios.create({
-  baseURL: getApiBaseUrl(),
-  withCredentials: true,
-})
+import { apiClient } from '@/lib/api-client'
 
 // =====================================================
 // WILAYAS SERVICE
@@ -48,17 +31,17 @@ export interface Commune {
 
 export const wilayasService = {
   async getWilayas(): Promise<Wilaya[]> {
-    const { data } = await apiClient.get('/api/admin/wilayas')
+    const { data } = await apiClient.instance.get('/admin/wilayas')
     return data
   },
 
   async createWilaya(wilaya: Omit<Wilaya, 'id' | 'created_at' | 'updated_at'>): Promise<Wilaya> {
-    const { data } = await apiClient.post('/admin/wilayas', wilaya)
+    const { data } = await apiClient.instance.post('/admin/wilayas', wilaya)
     return data
   },
 
   async updateWilaya(id: string, updates: Partial<Wilaya>): Promise<Wilaya> {
-    const { data } = await apiClient.patch(`/admin/wilayas/${id}`, updates)
+    const { data } = await apiClient.instance.patch(`/admin/wilayas/${id}`, updates)
     return data
   },
 
@@ -73,27 +56,27 @@ export const wilayasService = {
 
 export const communesService = {
   async getCommunes(): Promise<Commune[]> {
-    const { data } = await apiClient.get('/api/admin/communes')
+    const { data } = await apiClient.instance.get('/admin/communes')
     return data
   },
 
   async getCommunesByWilaya(wilayaId: string): Promise<Commune[]> {
-    const { data } = await apiClient.get(`/api/admin/communes?wilaya_id=${wilayaId}`)
+    const { data } = await apiClient.instance.get(`/admin/communes?wilaya_id=${wilayaId}`)
     return data
   },
 
   async createCommune(commune: Omit<Commune, 'id' | 'created_at' | 'updated_at'>): Promise<Commune> {
-    const { data } = await apiClient.post('/admin/communes', commune)
+    const { data } = await apiClient.instance.post('/admin/communes', commune)
     return data
   },
 
   async updateCommune(id: string, updates: Partial<Commune>): Promise<Commune> {
-    const { data } = await apiClient.patch(`/admin/communes/${id}`, updates)
+    const { data } = await apiClient.instance.patch(`/admin/communes/${id}`, updates)
     return data
   },
 
   async deleteCommune(id: string): Promise<void> {
-    await apiClient.delete(`/admin/communes/${id}`)
+    await apiClient.instance.delete(`/admin/communes/${id}`)
   },
 }
 
@@ -113,24 +96,24 @@ export interface Specialty {
 
 export const specialtiesService = {
   async getSpecialties(includeInactive = false): Promise<Specialty[]> {
-    const { data } = await apiClient.get('/admin/specialties', {
+    const { data } = await apiClient.instance.get('/admin/specialties', {
       params: { includeInactive },
     })
     return data
   },
 
   async createSpecialty(specialty: Omit<Specialty, 'id' | 'created_at' | 'updated_at'>): Promise<Specialty> {
-    const { data } = await apiClient.post('/admin/specialties', specialty)
+    const { data } = await apiClient.instance.post('/admin/specialties', specialty)
     return data
   },
 
   async updateSpecialty(id: string, updates: Partial<Specialty>): Promise<Specialty> {
-    const { data } = await apiClient.patch(`/admin/specialties/${id}`, updates)
+    const { data } = await apiClient.instance.patch(`/admin/specialties/${id}`, updates)
     return data
   },
 
   async deleteSpecialty(id: string): Promise<void> {
-    await apiClient.delete(`/admin/specialties/${id}`)
+    await apiClient.instance.delete(`/admin/specialties/${id}`)
   },
 
   async toggleSpecialtyStatus(id: string, status: 'active' | 'inactive'): Promise<Specialty> {
@@ -154,16 +137,16 @@ export interface PlatformConfig {
 
 export const platformConfigService = {
   async getPlatformConfig(): Promise<PlatformConfig[]> {
-    const { data } = await apiClient.get('/admin/platform-config')
+    const { data } = await apiClient.instance.get('/admin/platform-config')
     return data
   },
 
   async getPlatformConfigByKey(key: string): Promise<PlatformConfig | null> {
     try {
-      const { data } = await apiClient.get(`/admin/platform-config/${key}`)
+      const { data } = await apiClient.instance.get(`/admin/platform-config/${key}`)
       return data
     } catch (error) {
-      if (axios.isAxiosError(error) && error.response?.status === 404) {
+      if (apiClient.instance.isAxiosError(error) && error.response?.status === 404) {
         return null
       }
       throw error
@@ -175,7 +158,7 @@ export const platformConfigService = {
     value: unknown,
     configType: 'string' | 'boolean' | 'number' | 'json' = 'string'
   ): Promise<PlatformConfig> {
-    const { data } = await apiClient.post('/admin/platform-config', {
+    const { data } = await apiClient.instance.post('/admin/platform-config', {
       key,
       value,
       config_type: configType,
@@ -186,7 +169,7 @@ export const platformConfigService = {
   async updateMultiplePlatformConfigs(
     configs: Array<{ key: string; value: unknown; config_type?: string }>
   ): Promise<PlatformConfig[]> {
-    const { data } = await apiClient.post('/admin/platform-config/batch', { configs })
+    const { data } = await apiClient.instance.post('/admin/platform-config/batch', { configs })
     return data
   },
 }

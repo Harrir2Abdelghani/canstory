@@ -1,16 +1,5 @@
-import axios from 'axios'
+import { apiClient } from '@/lib/api-client'
 import { z } from 'zod'
-
-const getApiBaseUrl = () => {
-  const base = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || ''
-  if (base && base.startsWith('http')) return base.replace(/\/api\/?$/, '') || base
-  return typeof window !== 'undefined' ? window.location.origin : ''
-}
-
-const apiClient = axios.create({
-  baseURL: getApiBaseUrl(),
-  withCredentials: true,
-})
 
 const doctorSchema = z
   .object({
@@ -96,7 +85,7 @@ export interface UpdateDoctorPayload {
 
 export class DoctorsService {
   async getDoctors(params: { search?: string; status?: string } = {}): Promise<Doctor[]> {
-    const response = await apiClient.get('/api/admin/doctors', {
+    const response = await apiClient.instance.get('/admin/doctors', {
       params: {
         search: params.search,
         status: params.status,
@@ -108,7 +97,7 @@ export class DoctorsService {
   }
 
   async createDoctor(payload: CreateDoctorPayload): Promise<{ doctor: Doctor; tempPassword?: string }> {
-    const response = await apiClient.post('/api/admin/doctors', payload)
+    const response = await apiClient.instance.post('/admin/doctors', payload)
     return {
       doctor: doctorSchema.parse(response.data?.data),
       tempPassword: response.data?.tempPassword,
@@ -116,17 +105,17 @@ export class DoctorsService {
   }
 
   async updateDoctorStatus(doctorId: string, status: 'approved' | 'pending' | 'rejected'): Promise<Doctor> {
-    const response = await apiClient.patch(`/api/admin/doctors/${doctorId}/status`, { status })
+    const response = await apiClient.instance.patch(`/admin/doctors/${doctorId}/status`, { status })
     return doctorSchema.parse(response.data?.data)
   }
 
   async updateDoctor(doctorId: string, payload: UpdateDoctorPayload): Promise<Doctor> {
-    const response = await apiClient.patch(`/api/admin/doctors/${doctorId}`, payload)
+    const response = await apiClient.instance.patch(`/admin/doctors/${doctorId}`, payload)
     return doctorSchema.parse(response.data?.data)
   }
 
   async deleteDoctor(doctorId: string): Promise<void> {
-    await apiClient.delete(`/api/admin/doctors/${doctorId}`)
+    await apiClient.instance.delete(`/admin/doctors/${doctorId}`)
   }
 }
 
