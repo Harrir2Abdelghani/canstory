@@ -21,6 +21,7 @@ import { AnnuaireDistribution } from './components/annuaire-distribution'
 import { UserRolesChart } from './components/user-roles-chart'
 import { DownloadReportDialog } from './components/download-report-dialog'
 import { useAuthStore } from '@/stores/auth-store'
+import { apiClient } from '@/lib/api-client'
 
 interface DashboardStats {
   totalEntries: number
@@ -44,30 +45,17 @@ export function Dashboard() {
       if (!auth.user) return
 
       try {
-        const origin = typeof window !== 'undefined' ? window.location.origin : ''
-        const url = origin ? `${origin}/api/admin/annuaire` : '/api/admin/annuaire'
-        const response = await fetch(url, { credentials: 'include' })
-
-        if (!response.ok) return
-
-        const result = await response.json()
-        const entries = result.data || []
-
-        const approved = entries.filter((e: any) => e.status === 'approved').length
-        const pending = entries.filter((e: any) => e.status === 'pending').length
-        const rejected = entries.filter((e: any) => e.status === 'rejected').length
-
+        const { data } = await apiClient.instance.get('/admin/stats/dashboard')
+        
         const newStats = {
-          totalEntries: entries.length,
-          approvedEntries: approved,
-          pendingEntries: pending,
-          rejectedEntries: rejected,
+          totalEntries: data.annuaire.total,
+          approvedEntries: data.annuaire.approved,
+          pendingEntries: data.annuaire.pending,
+          rejectedEntries: data.annuaire.rejected,
         }
-        console.log('Stats to set:', newStats)
         setStats(newStats)
-        console.log('Stats state updated')
       } catch (error) {
-        console.error('Failed to fetch stats:', error)
+        console.error('Failed to fetch dashboard stats:', error)
       }
     }
 

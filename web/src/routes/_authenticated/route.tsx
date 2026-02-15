@@ -16,6 +16,8 @@ export const Route = createFileRoute('/_authenticated')({
 
     let currentUser = auth.user
     if (!currentUser) {
+      // If no user in store, check session via /me
+      console.log('[AUTH_ROUTE] No local user, verifying session...')
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
       const meUrl = origin ? `${origin}/api/auth/me` : '/api/auth/me'
       try {
@@ -30,15 +32,20 @@ export const Route = createFileRoute('/_authenticated')({
             fullName: user.full_name ?? null,
             avatarUrl: user.avatar_url ?? null,
           }
-          useAuthStore.getState().auth.setUser(normalizedUser)
+          auth.setUser(normalizedUser)
           currentUser = normalizedUser
+          console.log('[AUTH_ROUTE] Session verified, user loaded.')
         } else {
+          console.warn('[AUTH_ROUTE] Session verification failed, redirecting to sign-in.')
           throw redirect({ to: '/sign-in', replace: true })
         }
       } catch (e) {
         if (e && typeof e === 'object' && 'to' in e) throw e
+        console.error('[AUTH_ROUTE] Error verifying session:', e)
         throw redirect({ to: '/sign-in', replace: true })
       }
+    } else {
+      console.log('[AUTH_ROUTE] Using existing session for:', currentUser.email)
     }
 
     if (!currentUser || !isAdminRole(currentUser.role)) {

@@ -94,7 +94,8 @@ export function KhibratiManagement() {
         params
       })
 
-      setPublications(data || [])
+      // Backend now returns a flat array of publications
+      setPublications(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Fetch publications error:', error)
       toast.error('Erreur lors du chargement des publications')
@@ -120,7 +121,8 @@ export function KhibratiManagement() {
     try {
       const { data } = await apiClient.instance.put(`/admin/khibrati/publications/${id}/approve`)
 
-      setPublications((prev) => prev.map((p) => (p.id === id ? data : p)))
+      // Backend returns { message, publication }
+      setPublications((prev) => prev.map((p) => (p.id === id ? data.publication : p)))
       toast.success('Publication approuvée avec succès')
     } catch (error) {
       console.error('Approve error:', error)
@@ -139,7 +141,7 @@ export function KhibratiManagement() {
         reason: rejectionReason,
       })
 
-      setPublications((prev) => prev.map((p) => (p.id === selectedPublication.id ? data : p)))
+      setPublications((prev) => prev.map((p) => (p.id === selectedPublication.id ? data.publication : p)))
       toast.success('Publication rejetée')
       setIsRejectDialogOpen(false)
       setRejectionReason('')
@@ -161,7 +163,7 @@ export function KhibratiManagement() {
         notes: modificationNotes,
       })
 
-      setPublications((prev) => prev.map((p) => (p.id === selectedPublication.id ? data : p)))
+      setPublications((prev) => prev.map((p) => (p.id === selectedPublication.id ? data.publication : p)))
       toast.success('Demande de modification envoyée')
       setIsModifyDialogOpen(false)
       setModificationNotes('')

@@ -3932,6 +3932,52 @@ app.post('/api/admin/comments/bulk-action', async (req, res) => {
   }
 })
 
+/**
+ * Optimized Dashboard Statistics
+ * Returns counts for the main dashboard without fetching all rows
+ */
+app.get('/api/admin/stats/dashboard', async (req, res) => {
+  const adminUser = await requireAdminAuth(req, res)
+  if (!adminUser) return
+
+  try {
+    // Fetch counts in parallel for performance
+    const [
+      { count: annuaireTotal },
+      { count: annuaireApproved },
+      { count: annuairePending },
+      { count: annuaireRejected },
+      { count: publicationsTotal },
+      { count: commentsTotal },
+      { count: adsTotal }
+    ] = await Promise.all([
+      supabaseAdmin.from('annuaire').select('*', { count: 'exact', head: true }),
+      supabaseAdmin.from('annuaire').select('*', { count: 'exact', head: true }).eq('status', 'approved'),
+      supabaseAdmin.from('annuaire').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabaseAdmin.from('annuaire').select('*', { count: 'exact', head: true }).eq('status', 'rejected'),
+      supabaseAdmin.from('khibrati_publications').select('*', { count: 'exact', head: true }),
+      supabaseAdmin.from('comments').select('*', { count: 'exact', head: true }),
+      supabaseAdmin.from('advertisement_requests').select('*', { count: 'exact', head: true })
+    ])
+
+    return res.json({
+      annuaire: {
+        total: annuaireTotal || 0,
+        approved: annuaireApproved || 0,
+        pending: annuairePending || 0,
+        rejected: annuaireRejected || 0
+      },
+      publications: publicationsTotal || 0,
+      comments: commentsTotal || 0,
+      advertisements: adsTotal || 0,
+      timestamp: new Date().toISOString()
+    })
+  } catch (error) {
+    console.error('[STATS] Dashboard error:', error)
+    return res.status(500).json({ error: 'Failed to fetch dashboard statistics' })
+  }
+})
+
 // =====================================================
 // ADVERTISING MANAGEMENT ENDPOINTS (ADMIN)
 // =====================================================
@@ -4610,7 +4656,7 @@ app.get('/api/admin/khibrati/publications', async (req, res) => {
       )
     }
 
-    return res.json({ data: publications })
+    return res.json(publications)
   } catch (error) {
     console.error('Publications list error:', error)
     return res.status(500).json({ error: 'Internal server error', details: error.message })
@@ -4645,7 +4691,7 @@ app.get('/api/admin/khibrati/publications/:id', async (req, res) => {
       return res.status(500).json({ error: 'Failed to fetch publication', details: error.message })
     }
 
-    return res.json({ data })
+    return res.json(data)
   } catch (error) {
     console.error('Publication fetch error:', error)
     return res.status(500).json({ error: 'Internal server error', details: error.message })
@@ -4689,7 +4735,7 @@ app.put('/api/admin/khibrati/publications/:id/approve', async (req, res) => {
       return res.status(500).json({ error: 'Failed to approve publication', details: error.message })
     }
 
-    return res.json({ message: 'Publication approved successfully', data })
+    return res.json({ message: 'Publication approved successfully', publication: data })
   } catch (error) {
     console.error('Publication approval error:', error)
     return res.status(500).json({ error: 'Internal server error', details: error.message })
@@ -4736,7 +4782,7 @@ app.put('/api/admin/khibrati/publications/:id/reject', async (req, res) => {
       return res.status(500).json({ error: 'Failed to reject publication', details: error.message })
     }
 
-    return res.json({ message: 'Publication rejected successfully', data })
+    return res.json({ message: 'Publication rejected successfully', publication: data })
   } catch (error) {
     console.error('Publication rejection error:', error)
     return res.status(500).json({ error: 'Internal server error', details: error.message })
@@ -4783,7 +4829,7 @@ app.put('/api/admin/khibrati/publications/:id/request-modifications', async (req
       return res.status(500).json({ error: 'Failed to request modifications', details: error.message })
     }
 
-    return res.json({ message: 'Modification request sent successfully', data })
+    return res.json({ message: 'Modification request sent successfully', publication: data })
   } catch (error) {
     console.error('Modification request error:', error)
     return res.status(500).json({ error: 'Internal server error', details: error.message })
@@ -4834,7 +4880,7 @@ app.put('/api/admin/khibrati/publications/:id/status', async (req, res) => {
       return res.status(500).json({ error: 'Failed to update status', details: error.message })
     }
 
-    return res.json({ message: 'Status updated successfully', data })
+    return res.json({ message: 'Status updated successfully', publication: data })
   } catch (error) {
     console.error('Status update error:', error)
     return res.status(500).json({ error: 'Internal server error', details: error.message })
@@ -4871,7 +4917,7 @@ app.put('/api/admin/khibrati/publications/:id/archive', async (req, res) => {
       return res.status(500).json({ error: 'Failed to archive publication', details: error.message })
     }
 
-    return res.json({ message: 'Publication archived successfully', data })
+    return res.json({ message: 'Publication archived successfully', publication: data })
   } catch (error) {
     console.error('Publication archival error:', error)
     return res.status(500).json({ error: 'Internal server error', details: error.message })
