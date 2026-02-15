@@ -16,8 +16,9 @@ import { TopNav } from '@/components/layout/top-nav'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search as SearchBar } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { apiClient } from '@/lib/api-client'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+// const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 interface Advertisement {
   id: string
@@ -79,20 +80,15 @@ export function AdvertisingManagement() {
   const fetchAdvertisements = async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams()
-      if (searchTerm) params.append('search', searchTerm)
-      if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter)
-      if (typeFilter && typeFilter !== 'all') params.append('ad_type', typeFilter)
+      const params: any = {}
+      if (searchTerm) params.search = searchTerm
+      if (statusFilter && statusFilter !== 'all') params.status = statusFilter
+      if (typeFilter && typeFilter !== 'all') params.ad_type = typeFilter
 
-      const res = await fetch(`${API_BASE}/api/admin/advertisements?${params.toString()}`, {
-        credentials: 'include'
+      const { data } = await apiClient.instance.get('/admin/advertisements', {
+        params
       })
 
-      if (!res.ok) {
-        throw new Error('Failed to fetch advertisements')
-      }
-
-      const data = await res.json()
       setAdvertisements(data)
     } catch (error) {
       console.error('Fetch advertisements error:', error)
@@ -104,15 +100,7 @@ export function AdvertisingManagement() {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/advertisements/stats`, {
-        credentials: 'include'
-      })
-
-      if (!res.ok) {
-        throw new Error('Failed to fetch stats')
-      }
-
-      const data = await res.json()
+      const { data } = await apiClient.instance.get('/admin/advertisements/stats')
       setStats(data)
     } catch (error) {
       console.error('Fetch stats error:', error)
@@ -123,14 +111,7 @@ export function AdvertisingManagement() {
     if (!confirm('Approuver cette demande publicitaire ?')) return
 
     try {
-      const res = await fetch(`${API_BASE}/api/admin/advertisements/${id}/approve`, {
-        method: 'PUT',
-        credentials: 'include'
-      })
-
-      if (!res.ok) {
-        throw new Error('Failed to approve')
-      }
+      await apiClient.instance.put(`/admin/advertisements/${id}/approve`)
 
       toast.success('Publicité approuvée')
       await fetchAdvertisements()
@@ -151,16 +132,7 @@ export function AdvertisingManagement() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/admin/advertisements/${selectedAd.id}/reject`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: rejectionReason })
-      })
-
-      if (!res.ok) {
-        throw new Error('Failed to reject')
-      }
+      await apiClient.instance.put(`/admin/advertisements/${selectedAd.id}/reject`, { reason: rejectionReason })
 
       toast.success('Publicité rejetée')
       setIsRejectDialogOpen(false)
@@ -178,14 +150,7 @@ export function AdvertisingManagement() {
     if (!confirm('Marquer cette publicité comme expirée ?')) return
 
     try {
-      const res = await fetch(`${API_BASE}/api/admin/advertisements/${id}/expire`, {
-        method: 'PUT',
-        credentials: 'include'
-      })
-
-      if (!res.ok) {
-        throw new Error('Failed to expire')
-      }
+      await apiClient.instance.put(`/admin/advertisements/${id}/expire`)
 
       toast.success('Publicité marquée comme expirée')
       await fetchAdvertisements()

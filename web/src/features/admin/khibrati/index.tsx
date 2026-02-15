@@ -16,6 +16,7 @@ import { TopNav } from '@/components/layout/top-nav'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search as SearchBar } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { apiClient } from '@/lib/api-client'
 
 interface Publication {
   id: string
@@ -63,7 +64,7 @@ const topNav = [
   { title: 'Settings', href: '/platform-config', isActive: false, disabled: false },
 ]
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
 
 export function KhibratiManagement() {
   const [publications, setPublications] = useState<Publication[]>([])
@@ -85,20 +86,15 @@ export function KhibratiManagement() {
   const fetchPublications = async () => {
     try {
       setIsLoading(true)
-      const params = new URLSearchParams()
-      if (filterStatus && filterStatus !== 'all') params.append('status', filterStatus)
-      if (filterSpecialty && filterSpecialty !== 'all') params.append('specialty', filterSpecialty)
+      const params: any = {}
+      if (filterStatus && filterStatus !== 'all') params.status = filterStatus
+      if (filterSpecialty && filterSpecialty !== 'all') params.specialty = filterSpecialty
 
-      const response = await fetch(`${API_URL}/api/admin/khibrati/publications?${params}`, {
-        credentials: 'include',
+      const { data } = await apiClient.instance.get('/admin/khibrati/publications', {
+        params
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch publications')
-      }
-
-      const result = await response.json()
-      setPublications(result.data || [])
+      setPublications(data || [])
     } catch (error) {
       console.error('Fetch publications error:', error)
       toast.error('Erreur lors du chargement des publications')
@@ -118,20 +114,13 @@ export function KhibratiManagement() {
     )
   }, [publications, searchTerm])
 
+
+
   const handleApprove = async (id: string) => {
     try {
-      const response = await fetch(`${API_URL}/api/admin/khibrati/publications/${id}/approve`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-      })
+      const { data } = await apiClient.instance.put(`/admin/khibrati/publications/${id}/approve`)
 
-      if (!response.ok) {
-        throw new Error('Failed to approve publication')
-      }
-
-      const result = await response.json()
-      setPublications((prev) => prev.map((p) => (p.id === id ? result.data : p)))
+      setPublications((prev) => prev.map((p) => (p.id === id ? data : p)))
       toast.success('Publication approuvée avec succès')
     } catch (error) {
       console.error('Approve error:', error)
@@ -146,19 +135,11 @@ export function KhibratiManagement() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/admin/khibrati/publications/${selectedPublication.id}/reject`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: rejectionReason }),
+      const { data } = await apiClient.instance.put(`/admin/khibrati/publications/${selectedPublication.id}/reject`, {
+        reason: rejectionReason,
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to reject publication')
-      }
-
-      const result = await response.json()
-      setPublications((prev) => prev.map((p) => (p.id === selectedPublication.id ? result.data : p)))
+      setPublications((prev) => prev.map((p) => (p.id === selectedPublication.id ? data : p)))
       toast.success('Publication rejetée')
       setIsRejectDialogOpen(false)
       setRejectionReason('')
@@ -176,26 +157,17 @@ export function KhibratiManagement() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/admin/khibrati/publications/${selectedPublication.id}/request-modifications`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes: modificationNotes }),
+      const { data } = await apiClient.instance.put(`/admin/khibrati/publications/${selectedPublication.id}/request-modifications`, {
+        notes: modificationNotes,
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to request modifications')
-      }
-
-      const result = await response.json()
-      setPublications((prev) => prev.map((p) => (p.id === selectedPublication.id ? result.data : p)))
+      setPublications((prev) => prev.map((p) => (p.id === selectedPublication.id ? data : p)))
       toast.success('Demande de modification envoyée')
       setIsModifyDialogOpen(false)
       setModificationNotes('')
-      setSelectedPublication(null)
     } catch (error) {
       console.error('Request modifications error:', error)
-      toast.error('Erreur lors de la demande de modification')
+      toast.error('Erreur lors de la demande de modifications')
     }
   }
 

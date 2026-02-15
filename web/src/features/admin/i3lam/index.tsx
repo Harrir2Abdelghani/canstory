@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Switch } from '@/components/ui/switch'
+import { apiClient } from '@/lib/api-client'
 
 interface Article {
   id: string
@@ -103,7 +104,7 @@ const topNav = [
   { title: 'Settings', href: '/platform-config', isActive: false, disabled: false }
 ]
 
-const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001'
+
 
 const statusConfig = {
   brouillon: { label: 'Brouillon', color: 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300', icon: FileText },
@@ -167,18 +168,14 @@ export function I3lamManagement() {
 
   const fetchArticles = async () => {
     try {
-      const params = new URLSearchParams()
-      if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter)
-      if (categoryFilter && categoryFilter !== 'all') params.append('category', categoryFilter)
+      const params: any = {}
+      if (statusFilter && statusFilter !== 'all') params.status = statusFilter
+      if (categoryFilter && categoryFilter !== 'all') params.category = categoryFilter
 
-      const response = await fetch(`${API_URL}/api/admin/i3lam/articles?${params}`, {
-        credentials: 'include'
+      const { data } = await apiClient.instance.get('/admin/i3lam/articles', {
+        params
       })
-
-      if (!response.ok) throw new Error('Failed to fetch articles')
-
-      const result = await response.json()
-      setArticles(result.data || [])
+      setArticles(data.data || [])
     } catch (error) {
       console.error('Fetch articles error:', error)
       toast.error('Erreur lors du chargement des articles')
@@ -187,14 +184,8 @@ export function I3lamManagement() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/admin/i3lam/categories`, {
-        credentials: 'include'
-      })
-
-      if (!response.ok) throw new Error('Failed to fetch categories')
-
-      const result = await response.json()
-      setCategories(result.data || [])
+      const { data } = await apiClient.instance.get('/admin/i3lam/categories')
+      setCategories(data.data || [])
     } catch (error) {
       console.error('Fetch categories error:', error)
     }
@@ -202,14 +193,8 @@ export function I3lamManagement() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/admin/i3lam/stats`, {
-        credentials: 'include'
-      })
-
-      if (!response.ok) throw new Error('Failed to fetch stats')
-
-      const result = await response.json()
-      setStats(result.data)
+      const { data } = await apiClient.instance.get('/admin/i3lam/stats')
+      setStats(data.data)
     } catch (error) {
       console.error('Fetch stats error:', error)
     }
@@ -274,22 +259,12 @@ export function I3lamManagement() {
     setIsSubmitting(true)
     try {
       const url = editingArticle 
-        ? `${API_URL}/api/admin/i3lam/articles/${editingArticle.id}`
-        : `${API_URL}/api/admin/i3lam/articles`
+        ? `/admin/i3lam/articles/${editingArticle.id}`
+        : '/admin/i3lam/articles'
       
-      const method = editingArticle ? 'PUT' : 'POST'
+      const method = editingArticle ? 'put' : 'post'
       
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(formData)
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to save article')
-      }
+      await apiClient.instance[method](url, formData)
 
       toast.success(editingArticle ? 'Article mis à jour' : 'Article créé avec succès')
       setIsDialogOpen(false)
@@ -309,17 +284,12 @@ export function I3lamManagement() {
     }
 
     try {
-      const response = await fetch(`${API_URL}/api/admin/i3lam/articles/bulk`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ action, article_ids: selectedArticles })
+      const { data } = await apiClient.instance.post('/admin/i3lam/articles/bulk', {
+        action,
+        article_ids: selectedArticles
       })
 
-      if (!response.ok) throw new Error('Bulk action failed')
-
-      const result = await response.json()
-      toast.success(result.message)
+      toast.success(data.message)
       setSelectedArticles([])
       await fetchData()
     } catch (error) {
@@ -330,17 +300,9 @@ export function I3lamManagement() {
 
   const handleToggleFeatured = async (articleId: string, currentStatus: boolean) => {
     try {
-      const response = await fetch(`${API_URL}/api/admin/i3lam/articles/${articleId}/featured`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ is_featured: !currentStatus })
+      await apiClient.instance.put(`/admin/i3lam/articles/${articleId}/featured`, {
+        is_featured: !currentStatus
       })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to toggle featured')
-      }
 
       toast.success(currentStatus ? 'Article retiré de la une' : 'Article mis en avant')
       await fetchArticles()
@@ -354,12 +316,7 @@ export function I3lamManagement() {
     if (!deleteArticle) return
 
     try {
-      const response = await fetch(`${API_URL}/api/admin/i3lam/articles/${deleteArticle.id}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      })
-
-      if (!response.ok) throw new Error('Delete failed')
+      await apiClient.instance.delete(`/admin/i3lam/articles/${deleteArticle.id}`)
 
       toast.success('Article supprimé avec succès')
       setDeleteArticle(null)
