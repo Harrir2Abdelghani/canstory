@@ -17,8 +17,9 @@ import { TopNav } from '@/components/layout/top-nav'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search as SearchBar } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { apiClient } from '@/lib/api-client'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+
 
 interface AboutSection {
   id: string
@@ -119,11 +120,7 @@ export function AboutManagement() {
 
   const fetchSections = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/about/sections`, {
-        credentials: 'include'
-      })
-      if (!res.ok) throw new Error('Failed to fetch sections')
-      const data = await res.json()
+      const { data } = await apiClient.instance.get('/admin/about/sections')
       
       // Set form data
       const presentation = data.find((s: AboutSection) => s.section === 'presentation')
@@ -148,11 +145,7 @@ export function AboutManagement() {
 
   const fetchTeamMembers = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/about/team`, {
-        credentials: 'include'
-      })
-      if (!res.ok) throw new Error('Failed to fetch team')
-      const data = await res.json()
+      const { data } = await apiClient.instance.get('/admin/about/team')
       setTeamMembers(data)
     } catch (error) {
       console.error('Fetch team error:', error)
@@ -161,11 +154,7 @@ export function AboutManagement() {
 
   const fetchContacts = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/about/contacts`, {
-        credentials: 'include'
-      })
-      if (!res.ok) throw new Error('Failed to fetch contacts')
-      const data = await res.json()
+      const { data } = await apiClient.instance.get('/admin/about/contacts')
       
       // Populate contact form
       const newContactForm = { email: '', phone: '', address: '', facebook: '', instagram: '', whatsapp: '', linkedin: '' }
@@ -187,18 +176,12 @@ export function AboutManagement() {
   const handleSavePresentation = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/admin/about/sections/presentation`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title_fr: presentationForm.title,
-          content_fr: presentationForm.description,
-          images: presentationForm.image ? { main: presentationForm.image } : null
-        })
+      await apiClient.instance.put('/admin/about/sections/presentation', {
+        title_fr: presentationForm.title,
+        content_fr: presentationForm.description,
+        images: presentationForm.image ? { main: presentationForm.image } : null
       })
       
-      if (!res.ok) throw new Error('Failed to save')
       toast.success('Présentation enregistrée avec succès')
       await fetchSections()
     } catch (error) {
@@ -211,17 +194,11 @@ export function AboutManagement() {
   const handleSaveMission = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/admin/about/sections/mission`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content_fr: missionForm.text,
-          metadata: { values: missionValues }
-        })
+      await apiClient.instance.put('/admin/about/sections/mission', {
+        content_fr: missionForm.text,
+        metadata: { values: missionValues }
       })
       
-      if (!res.ok) throw new Error('Failed to save')
       toast.success('Mission enregistrée avec succès')
       await fetchSections()
     } catch (error) {
@@ -253,19 +230,12 @@ export function AboutManagement() {
 
     setLoading(true)
     try {
-      const method = editingTeamMember ? 'PUT' : 'POST'
+      const method = editingTeamMember ? 'put' : 'post'
       const url = editingTeamMember 
-        ? `${API_BASE}/api/admin/about/team/${editingTeamMember.id}`
-        : `${API_BASE}/api/admin/about/team`
+        ? `/admin/about/team/${editingTeamMember.id}`
+        : '/admin/about/team'
       
-      const res = await fetch(url, {
-        method,
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(teamForm)
-      })
-      
-      if (!res.ok) throw new Error('Failed to save')
+      await apiClient.instance[method](url, teamForm)
       
       toast.success(editingTeamMember ? 'Membre modifié' : 'Membre ajouté')
       setIsTeamDialogOpen(false)
@@ -297,12 +267,7 @@ export function AboutManagement() {
     
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/api/admin/about/team/${id}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      })
-      
-      if (!res.ok) throw new Error('Failed to delete')
+      await apiClient.instance.delete(`/admin/about/team/${id}`)
       toast.success('Membre supprimé')
       await fetchTeamMembers()
     } catch (error) {
@@ -314,12 +279,7 @@ export function AboutManagement() {
 
   const handleToggleTeamMember = async (id: string) => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/about/team/${id}/toggle`, {
-        method: 'PATCH',
-        credentials: 'include'
-      })
-      
-      if (!res.ok) throw new Error('Failed to toggle')
+      await apiClient.instance.patch(`/admin/about/team/${id}/toggle`)
       await fetchTeamMembers()
     } catch (error) {
       toast.error('Erreur lors de la modification')
@@ -353,14 +313,8 @@ export function AboutManagement() {
         contactsData.push({ type: 'social', label_fr: 'LinkedIn', value: contactForm.linkedin, icon: 'Linkedin', display_order: 6 })
       }
       
-      const res = await fetch(`${API_BASE}/api/admin/about/contacts`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contacts: contactsData })
-      })
+      await apiClient.instance.put('/admin/about/contacts', { contacts: contactsData })
       
-      if (!res.ok) throw new Error('Failed to save')
       toast.success('Contacts enregistrés avec succès')
       await fetchContacts()
     } catch (error) {

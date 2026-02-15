@@ -17,8 +17,9 @@ import { TopNav } from '@/components/layout/top-nav'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search as SearchBar } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { apiClient } from '@/lib/api-client'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+// const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 interface Accommodation {
   id: string
@@ -104,20 +105,15 @@ export function AccommodationsManagement() {
   const fetchAccommodations = async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams()
-      if (searchTerm) params.append('search', searchTerm)
-      if (wilayaFilter && wilayaFilter !== 'all') params.append('wilaya', wilayaFilter)
-      if (availabilityFilter && availabilityFilter !== 'all') params.append('disponibilite', availabilityFilter)
+      const params: any = {}
+      if (searchTerm) params.search = searchTerm
+      if (wilayaFilter && wilayaFilter !== 'all') params.wilaya = wilayaFilter
+      if (availabilityFilter && availabilityFilter !== 'all') params.disponibilite = availabilityFilter
 
-      const res = await fetch(`${API_BASE}/api/admin/accommodations?${params.toString()}`, {
-        credentials: 'include'
+      const { data } = await apiClient.instance.get('/admin/accommodations', {
+        params
       })
 
-      if (!res.ok) {
-        throw new Error('Failed to fetch accommodations')
-      }
-
-      const data = await res.json()
       setAccommodations(data)
     } catch (error) {
       console.error('Fetch accommodations error:', error)
@@ -129,15 +125,7 @@ export function AccommodationsManagement() {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/accommodations/stats`, {
-        credentials: 'include'
-      })
-
-      if (!res.ok) {
-        throw new Error('Failed to fetch stats')
-      }
-
-      const data = await res.json()
+      const { data } = await apiClient.instance.get('/admin/accommodations/stats')
       setStats(data)
     } catch (error) {
       console.error('Fetch stats error:', error)
@@ -188,21 +176,12 @@ export function AccommodationsManagement() {
         rules: formData.rules ? formData.rules.split('\n').filter(Boolean) : [],
       }
 
+      const method = editingId ? 'put' : 'post'
       const url = editingId 
-        ? `${API_BASE}/api/admin/accommodations/${editingId}`
-        : `${API_BASE}/api/admin/accommodations`
+        ? `/admin/accommodations/${editingId}`
+        : '/admin/accommodations'
 
-      const res = await fetch(url, {
-        method: editingId ? 'PUT' : 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || 'Failed to save')
-      }
+      await (apiClient.instance as any)[method](url, payload)
 
       toast.success(editingId ? 'Logement mis à jour' : 'Logement créé')
       setIsDialogOpen(false)
@@ -241,14 +220,7 @@ export function AccommodationsManagement() {
     if (!confirm('Voulez-vous vraiment supprimer ce logement ?')) return
 
     try {
-      const res = await fetch(`${API_BASE}/api/admin/accommodations/${id}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      })
-
-      if (!res.ok) {
-        throw new Error('Failed to delete')
-      }
+      await apiClient.instance.delete(`/admin/accommodations/${id}`)
 
       toast.success('Logement supprimé')
       await fetchAccommodations()

@@ -15,8 +15,9 @@ import { TopNav } from '@/components/layout/top-nav'
 import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search as SearchBar } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { apiClient } from '@/lib/api-client'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+// const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
 interface Comment {
   id: string
@@ -95,21 +96,16 @@ export function CommentsModeration() {
   const fetchComments = async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams()
-      if (searchTerm) params.append('search', searchTerm)
-      if (statusFilter && statusFilter !== 'all') params.append('status', statusFilter)
-      if (articleTypeFilter && articleTypeFilter !== 'all') params.append('article_type', articleTypeFilter)
-      if (minReportsFilter) params.append('min_reports', minReportsFilter)
+      const params: any = {}
+      if (searchTerm) params.search = searchTerm
+      if (statusFilter && statusFilter !== 'all') params.status = statusFilter
+      if (articleTypeFilter && articleTypeFilter !== 'all') params.article_type = articleTypeFilter
+      if (minReportsFilter) params.min_reports = minReportsFilter
 
-      const res = await fetch(`${API_BASE}/api/admin/comments?${params.toString()}`, {
-        credentials: 'include'
+      const { data } = await apiClient.instance.get('/admin/comments', {
+        params
       })
 
-      if (!res.ok) {
-        throw new Error('Failed to fetch comments')
-      }
-
-      const data = await res.json()
       setComments(data)
     } catch (error) {
       console.error('Fetch comments error:', error)
@@ -121,15 +117,7 @@ export function CommentsModeration() {
 
   const fetchStats = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/comments/stats`, {
-        credentials: 'include'
-      })
-
-      if (!res.ok) {
-        throw new Error('Failed to fetch stats')
-      }
-
-      const data = await res.json()
+      const { data } = await apiClient.instance.get('/admin/comments/stats')
       setStats(data)
     } catch (error) {
       console.error('Fetch stats error:', error)
@@ -138,16 +126,7 @@ export function CommentsModeration() {
 
   const handleUpdateStatus = async (id: string, status: string, reason?: string) => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/comments/${id}/status`, {
-        method: 'PUT',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, reason })
-      })
-
-      if (!res.ok) {
-        throw new Error('Failed to update status')
-      }
+      await apiClient.instance.put(`/admin/comments/${id}/status`, { status, reason })
 
       toast.success(`Commentaire ${status === 'approved' ? 'approuvé' : status === 'rejected' ? 'rejeté' : 'mis à jour'}`)
       await fetchComments()
@@ -162,14 +141,7 @@ export function CommentsModeration() {
     if (!confirm('Voulez-vous vraiment supprimer ce commentaire ?')) return
 
     try {
-      const res = await fetch(`${API_BASE}/api/admin/comments/${id}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      })
-
-      if (!res.ok) {
-        throw new Error('Failed to delete')
-      }
+      await apiClient.instance.delete(`/admin/comments/${id}`)
 
       toast.success('Commentaire supprimé')
       await fetchComments()
@@ -190,21 +162,11 @@ export function CommentsModeration() {
     if (!confirm(`Voulez-vous vraiment ${actionText} ${selectedComments.size} commentaire(s) ?`)) return
 
     try {
-      const res = await fetch(`${API_BASE}/api/admin/comments/bulk-action`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          commentIds: Array.from(selectedComments),
-          action
-        })
+      const { data } = await apiClient.instance.post('/admin/comments/bulk-action', {
+        commentIds: Array.from(selectedComments),
+        action
       })
 
-      if (!res.ok) {
-        throw new Error('Failed to perform bulk action')
-      }
-
-      const data = await res.json()
       toast.success(data.message)
       setSelectedComments(new Set())
       await fetchComments()
