@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Accommodations API</title>
+</head>
+<body>
+    <h1>Testing Accommodations API</h1>
+    <button onclick="testAPI()">Test GET /api/admin/accommodations</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testAPI() {
+            const resultEl = document.getElementById('result');
+            resultEl.textContent = 'Loading...';
+            
+            try {
+                const response = await fetch('http://localhost:3001/api/admin/accommodations', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const text = await response.text();
+                resultEl.textContent = `Status: ${response.status}\n\nResponse:\n${text}`;
+            } catch (error) {
+                resultEl.textContent = `Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>
