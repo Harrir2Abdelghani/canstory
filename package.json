@@ -1,11 +1,20 @@
 {
-  "name": "canstory-monorepo",
+  "name": "canstory",
   "version": "1.0.0",
+  "description": "CanStory - Cancer Support Platform",
   "private": true,
   "scripts": {
+    "dev:web": "cd web && npm run dev",
+    "dev:server": "cd server && npm run dev",
+    "dev:all": "concurrently \"npm run dev:web\" \"npm run dev:server\"",
+    "install:all": "npm install && cd web && npm install && cd ../server && npm install && cd ../mobile && npm install",
     "install:web": "cd web && npm install",
-    "build:web": "cd web && npm run build",
-    "start:backend": "cd web && node server.js",
-    "dev:backend": "cd web && node server.js"
+    "install:mobile": "cd mobile && npm install"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }
