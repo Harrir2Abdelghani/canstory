@@ -145,8 +145,8 @@ export const platformConfigService = {
     try {
       const { data } = await apiClient.instance.get(`/admin/platform-config/${key}`)
       return data
-    } catch (error) {
-      if (apiClient.instance.isAxiosError(error) && error.response?.status === 404) {
+    } catch (error: any) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
         return null
       }
       throw error
