@@ -52,6 +52,7 @@ const CenterNextButton: React.FC<Props> = ({
   const currentAuthOpacity = useRef<number>(0);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [showNextArrow, setShowNextArrow] = useState(true);
 
   const { bottom } = useSafeAreaInsets();
   const paddingBottom = 16 + bottom;
@@ -59,9 +60,12 @@ const CenterNextButton: React.FC<Props> = ({
   const dots = useMemo(() => [0, 1, 2, 3], []);
 
   useEffect(() => {
-    animationController.current.addListener(({ value }) => {
+    const listener = animationController.current.addListener(({ value }) => {
       const isVisible = value >= 0.2 && value <= 0.6;
-      const showAuthButtons = value >= 0.95;
+      const showAuthButtons = value >= 0.7;
+      const nextArrowVisible = value < 0.7;
+
+      setShowNextArrow(nextArrowVisible);
 
       if (
         (isVisible && currentOpacity.current === 0) ||
@@ -97,6 +101,10 @@ const CenterNextButton: React.FC<Props> = ({
         setSelectedIndex(0);
       }
     });
+
+    return () => {
+      animationController.current.removeListener(listener);
+    };
   }, [animationController]);
 
   const topViewAnim = animationController.current.interpolate({
@@ -127,7 +135,9 @@ const CenterNextButton: React.FC<Props> = ({
         ))}
       </Animated.View>
 
-      <NextButtonArrow {...{ animationController }} onBtnPress={onNextClick} />
+      {showNextArrow && (
+        <NextButtonArrow {...{ animationController }} onBtnPress={onNextClick} />
+      )}
 
       <Animated.View
         style={[
@@ -136,19 +146,19 @@ const CenterNextButton: React.FC<Props> = ({
         ]}
       >
         <MyPressable
-          style={styles.signUpAuthButton}
-          android_ripple={{ color: '#6a1b9a' }}
-          onPress={() => navigation.navigate('SignUp' as never)}
-        >
-          <Text style={styles.signUpAuthButtonText}>S'inscrire</Text>
-        </MyPressable>
-
-        <MyPressable
           style={styles.signInAuthButton}
           android_ripple={{ color: '#f3e5f5' }}
           onPress={() => navigation.navigate('SignIn' as never)}
         >
           <Text style={styles.signInAuthButtonText}>Se connecter</Text>
+        </MyPressable>
+
+        <MyPressable
+          style={styles.signUpAuthButton}
+          android_ripple={{ color: '#6a1b9a' }}
+          onPress={() => navigation.navigate('SignUp' as never)}
+        >
+          <Text style={styles.signUpAuthButtonText}>S'inscrire</Text>
         </MyPressable>
       </Animated.View>
     </Animated.View>
@@ -183,7 +193,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   authButtonsContainer: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     gap: 12,
     marginTop: 16,
     paddingHorizontal: 20,
@@ -191,11 +201,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   signUpAuthButton: {
-    flex: 1,
     backgroundColor: '#7b1fa2',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
+    width: '100%',
   },
   signUpAuthButtonText: {
     fontSize: 16,
@@ -203,13 +213,13 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   signInAuthButton: {
-    flex: 1,
     backgroundColor: 'transparent',
     borderWidth: 2,
     borderColor: '#7b1fa2',
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
+    width: '100%',
   },
   signInAuthButtonText: {
     fontSize: 16,

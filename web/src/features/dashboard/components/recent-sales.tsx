@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { useAuthStore } from '@/stores/auth-store'
 
 interface AnnuaireEntry {
   id: string
@@ -11,43 +9,16 @@ interface AnnuaireEntry {
   status: string
 }
 
-export function RecentSales() {
-  const { auth } = useAuthStore()
-  const [entries, setEntries] = useState<AnnuaireEntry[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+interface RecentSalesProps {
+  data: AnnuaireEntry[]
+}
 
-  useEffect(() => {
-    const fetchRecentEntries = async () => {
-      if (!auth.user) {
-        setIsLoading(false)
-        return
-      }
-      try {
-        const origin = typeof window !== 'undefined' ? window.location.origin : ''
-        const url = origin ? `${origin}/api/admin/annuaire` : '/api/admin/annuaire'
-        const response = await fetch(url, { credentials: 'include' })
-
-        if (!response.ok) {
-          setIsLoading(false)
-          return
-        }
-
-        const result = await response.json()
-        const data = (result.data || []).slice(0, 5)
-        setEntries(data)
-      } catch {
-        /* ignore */
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchRecentEntries()
-  }, [auth.user])
-
+export function RecentSales({ data }: RecentSalesProps) {
   const getInitials = (name: string) => {
+    if (!name) return '??'
     return name
       .split(' ')
+      .filter(n => n)
       .map((n) => n[0])
       .join('')
       .toUpperCase()
@@ -55,7 +26,7 @@ export function RecentSales() {
   }
 
   const getRoleLabel = (role: string) => {
-    const roleMap: Record<string, string> = {
+    const roleLabels: Record<string, string> = {
       medecin: 'Médecin',
       centre_cancer: 'Centre Cancer',
       psychologue: 'Psychologue',
@@ -63,18 +34,10 @@ export function RecentSales() {
       pharmacie: 'Pharmacie',
       association: 'Association',
     }
-    return roleMap[role] || role
+    return roleLabels[role] || role
   }
 
-  if (isLoading) {
-    return (
-      <div className='flex h-40 items-center justify-center text-sm text-muted-foreground'>
-        Loading entries...
-      </div>
-    )
-  }
-
-  if (entries.length === 0) {
+  if (!data || data.length === 0) {
     return (
       <div className='flex h-40 items-center justify-center text-sm text-muted-foreground'>
         No entries available
@@ -83,19 +46,19 @@ export function RecentSales() {
   }
 
   return (
-    <div className='space-y-8'>
-      {entries.map((entry) => (
-        <div key={entry.id} className='flex items-center gap-4'>
-          <Avatar className='h-9 w-9'>
+    <div className='space-y-6'>
+      {data.map((entry) => (
+        <div key={entry.id} className='flex items-center gap-4 group transition-all'>
+          <Avatar className='h-9 w-9 border-2 border-background shadow-sm'>
             <AvatarImage src={entry.avatar_url} alt={entry.name} />
-            <AvatarFallback>{getInitials(entry.name)}</AvatarFallback>
+            <AvatarFallback className="bg-muted text-xs font-semibold">{getInitials(entry.name)}</AvatarFallback>
           </Avatar>
-          <div className='flex flex-1 flex-wrap items-center justify-between'>
-            <div className='space-y-1'>
-              <p className='text-sm leading-none font-medium'>{entry.name}</p>
-              <p className='text-xs text-muted-foreground'>{getRoleLabel(entry.annuaire_role)}</p>
+          <div className='flex flex-1 flex-wrap items-center justify-between gap-x-2'>
+            <div className='space-y-0.5'>
+              <p className='text-sm font-semibold leading-none group-hover:text-primary transition-colors'>{entry.name}</p>
+              <p className='text-xs text-muted-foreground font-medium'>{getRoleLabel(entry.annuaire_role)}</p>
             </div>
-            <div className='text-xs font-medium text-primary'>{entry.email}</div>
+            <div className='text-[11px] font-medium text-muted-foreground bg-muted/30 px-2 py-0.5 rounded-full'>{entry.email}</div>
           </div>
         </div>
       ))}

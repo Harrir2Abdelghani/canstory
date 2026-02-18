@@ -25,16 +25,16 @@ const NextButtonArrow: React.FC<Props> = ({
     outputRange: [36, 0, 0],
   });
   const opacityAnim = arrowAnim.current.interpolate({
-    inputRange: [0, 0.7, 1],
-    outputRange: [0, 0, 1],
+    inputRange: [0, 0.7, 0.75, 1],
+    outputRange: [0, 0, 1, 0],
   });
   const iconTransitionAnim = arrowAnim.current.interpolate({
     inputRange: [0, 0.35, 0.85, 1],
     outputRange: [0, 0, -36, -36],
   });
   const iconOpacityAnim = arrowAnim.current.interpolate({
-    inputRange: [0, 0.7, 1],
-    outputRange: [1, 0, 0],
+    inputRange: [0, 0.7, 0.75, 1],
+    outputRange: [1, 0, 0, 0],
   });
 
   const widthAnim = arrowAnim.current.interpolate({
@@ -77,7 +77,7 @@ const NextButtonArrow: React.FC<Props> = ({
             },
           ]}
         >
-          <Text style={styles.signupText}>Sign In</Text>
+          <Text style={styles.signupText}>Se connecter</Text>
           <Text style={{ fontSize: 24, color: 'white' }}>→</Text>
         </Animated.View>
         

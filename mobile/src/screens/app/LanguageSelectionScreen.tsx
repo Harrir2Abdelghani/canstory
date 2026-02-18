@@ -13,7 +13,9 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import AnimatedBackground from '../../components/AnimatedBackground';
 import MyPressable from '../../components/MyPressable';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { LanguagePreference } from '../../types';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const LANGUAGES = [
   { value: 'fr' as LanguagePreference, label: 'Français', icon: '🇫🇷' },
@@ -25,26 +27,25 @@ const LanguageSelectionScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { user, updateProfile } = useAuth();
+  const { language: currentLang, setLanguage: setGlobalLanguage, t } = useLanguage();
   
   const [selectedLanguage, setSelectedLanguage] = useState<LanguagePreference>(
-    user?.language || 'fr'
+    (currentLang.toLowerCase() as LanguagePreference) || 'fr'
   );
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
     setLoading(true);
-    const { error } = await updateProfile({
-      language: selectedLanguage,
-    });
+    
+    // Update global context first
+    await setGlobalLanguage(selectedLanguage.toUpperCase() as any);
+    
+    // Auth context update is already handled inside setLanguage in LanguageContext
+    // but we can keep this for explicit success/error feedback if needed
     setLoading(false);
-
-    if (error) {
-      Alert.alert('Erreur', error.message);
-    } else {
-      Alert.alert('Succès', 'Langue mise à jour avec succès', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
-    }
+    Alert.alert(t('success') || 'Succès', t('profile_updated') || 'Langue mise à jour avec succès', [
+      { text: 'OK', onPress: () => navigation.goBack() }
+    ]);
   };
 
   return (
@@ -54,11 +55,11 @@ const LanguageSelectionScreen: React.FC = () => {
       </View>
       
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>← Retour</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="arrow-back" size={24} color="#7b1fa2" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Langue</Text>
-        <View style={{ width: 80 }} />
+        <Text style={styles.headerTitle}>{t('lang_title') || 'Langue'}</Text>
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView
@@ -67,9 +68,9 @@ const LanguageSelectionScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Choisissez votre langue</Text>
+          <Text style={styles.sectionTitle}>{t('choose_lang') || 'Choisissez votre langue'}</Text>
           <Text style={styles.sectionDescription}>
-            Sélectionnez la langue d'affichage de l'application
+            {t('choose_lang_desc') || "Sélectionnez la langue d'affichage de l'application"}
           </Text>
 
           {LANGUAGES.map((language) => (
@@ -105,7 +106,7 @@ const LanguageSelectionScreen: React.FC = () => {
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text style={styles.saveButtonText}>Enregistrer</Text>
+            <Text style={styles.saveButtonText}>{t('save') || 'Enregistrer'}</Text>
           )}
         </MyPressable>
       </ScrollView>

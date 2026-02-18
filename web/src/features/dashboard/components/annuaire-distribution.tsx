@@ -1,78 +1,39 @@
-import { useEffect, useState } from 'react'
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
-import { useAuthStore } from '@/stores/auth-store'
+import { memo } from 'react'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
 
-const COLORS = ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#ec4899']
+const VIOLET_COLORS = [
+  '#6d28d9', // primary
+  '#7c3aed', // violet-600
+  '#8b5cf6', // violet-500
+  '#a78bfa', // violet-400
+  '#c4b5fd', // violet-300
+  '#ddd6fe', // violet-200
+]
 
-export function AnnuaireDistribution() {
-  const { auth } = useAuthStore()
-  const [data, setData] = useState<Array<{ name: string; value: number }>>([])
-  const [isLoading, setIsLoading] = useState(true)
+interface AnnuaireDistributionProps {
+  data: Record<string, number>
+}
 
-  useEffect(() => {
-    const fetchAnnuaireDistribution = async () => {
-      if (!auth.user) {
-        setIsLoading(false)
-        return
-      }
-      try {
-        const origin = typeof window !== 'undefined' ? window.location.origin : ''
-        const url = origin ? `${origin}/api/admin/annuaire` : '/api/admin/annuaire'
-        const response = await fetch(url, { credentials: 'include' })
+const ROLE_LABELS: Record<string, string> = {
+  medecin: 'Médecins',
+  centre_cancer: 'Centres de Cancer',
+  psychologue: 'Psychologues',
+  laboratoire: 'Laboratoires',
+  pharmacie: 'Pharmacies',
+  association: 'Associations',
+  unknown: 'Inconnu'
+}
 
-        if (!response.ok) {
-          setIsLoading(false)
-          return
-        }
+export const AnnuaireDistribution = memo(function AnnuaireDistribution({ data }: AnnuaireDistributionProps) {
+  const chartData = Object.entries(data || {}).map(([role, count]) => ({
+    name: ROLE_LABELS[role] || role,
+    value: count,
+  }))
 
-        const result = await response.json()
-        const entries = result.data || []
-
-        const roleMap: Record<string, number> = {}
-        entries.forEach((entry: any) => {
-          const role = entry.annuaire_role || 'unknown'
-          roleMap[role] = (roleMap[role] || 0) + 1
-        })
-
-        const roleLabels: Record<string, string> = {
-          medecin: 'Médecins',
-          centre_cancer: 'Centres Cancer',
-          psychologue: 'Psychologues',
-          laboratoire: 'Laboratoires',
-          pharmacie: 'Pharmacies',
-          association: 'Associations',
-        }
-
-        const chartData = Object.entries(roleMap).map(([role, count]) => ({
-          name: roleLabels[role] || role,
-          value: count,
-        }))
-
-        setData(chartData)
-      } catch {
-        /* ignore */
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchAnnuaireDistribution()
-  }, [])
-
-  if (isLoading) {
+  if (chartData.length === 0) {
     return (
       <div className='flex h-[300px] items-center justify-center text-sm text-muted-foreground'>
-        Loading chart data...
-      </div>
-    )
-  }
-
-  console.log('AnnuaireDistribution render - data:', data)
-
-  if (data.length === 0) {
-    return (
-      <div className='flex h-[300px] items-center justify-center text-sm text-muted-foreground'>
-        No data available
+        Aucune donnée disponible
       </div>
     )
   }
@@ -81,22 +42,41 @@ export function AnnuaireDistribution() {
     <ResponsiveContainer width='100%' height={300}>
       <PieChart>
         <Pie
-          data={data}
+          data={chartData}
           cx='50%'
           cy='50%'
-          labelLine={false}
-          label={({ name, value }) => `${name}: ${value}`}
+          innerRadius={60}
           outerRadius={80}
-          fill='#8884d8'
+          paddingAngle={5}
           dataKey='value'
+          animationDuration={1500}
         >
-          {data.map((_, index) => (
-            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          {chartData.map((_, index) => (
+            <Cell 
+              key={`cell-${index}`} 
+              fill={VIOLET_COLORS[index % VIOLET_COLORS.length]} 
+              stroke="rgba(255,255,255,0.1)" 
+            />
           ))}
         </Pie>
-        <Tooltip formatter={(value) => `${value} entries`} />
-        <Legend />
+        <Tooltip
+          contentStyle={{
+            backgroundColor: 'hsl(var(--background))',
+            border: '1px solid hsl(var(--border))',
+            borderRadius: '12px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+            fontSize: '12px'
+          }}
+          itemStyle={{ fontWeight: '600' }}
+          formatter={(value) => [`${value} entrées`, 'Quantité']}
+        />
+        <Legend 
+          verticalAlign="bottom" 
+          height={36} 
+          iconType="circle"
+          formatter={(value) => <span style={{ color: 'hsl(var(--muted-foreground))', fontSize: '11px' }}>{value}</span>}
+        />
       </PieChart>
     </ResponsiveContainer>
   )
-}
+})

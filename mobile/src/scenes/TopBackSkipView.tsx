@@ -3,6 +3,7 @@ import { StyleSheet, Text, Animated, StatusBar } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import MyPressable from '../components/MyPressable';
 import Config from '../Config';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface Props {
   onBackClick: () => void;
@@ -16,6 +17,7 @@ const TopBackSkipView: React.FC<Props> = ({
   animationController,
 }) => {
   const { top } = useSafeAreaInsets();
+  const { t } = useLanguage();
   const marginTop = Config.isIos ? top : StatusBar.currentHeight;
 
   const headerTranslateY = animationController.current.interpolate({
@@ -48,7 +50,7 @@ const TopBackSkipView: React.FC<Props> = ({
           onPress={() => onSkipClick()}
         >
           <Text style={{ color: '#7b1fa2', fontWeight: '600' }}>
-            Skip
+            {t('skip')}
           </Text>
         </MyPressable>
       </Animated.View>

@@ -15,6 +15,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import AnimatedBackground from '../../components/AnimatedBackground';
 import MyPressable from '../../components/MyPressable';
 import { supabase } from '../../lib/supabase';
+import { useLanguage } from '../../contexts/LanguageContext';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 interface NotificationSettings {
   article_notifications: boolean;
@@ -28,6 +30,7 @@ const NotificationSettingsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { user } = useAuth();
+  const { t } = useLanguage();
   
   const [settings, setSettings] = useState<NotificationSettings>({
     article_notifications: true,
@@ -80,9 +83,9 @@ const NotificationSettingsScreen: React.FC = () => {
     setSaving(false);
 
     if (error) {
-      Alert.alert('Erreur', 'Impossible de sauvegarder les paramètres');
+      Alert.alert(t('error') || 'Erreur', t('error_save_settings') || 'Impossible de sauvegarder les paramètres');
     } else {
-      Alert.alert('Succès', 'Paramètres mis à jour avec succès', [
+      Alert.alert(t('success') || 'Succès', t('settings_saved') || 'Paramètres mis à jour avec succès', [
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     }
@@ -104,11 +107,11 @@ const NotificationSettingsScreen: React.FC = () => {
       </View>
       
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>← Retour</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="arrow-back" size={24} color="#7b1fa2" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notifications</Text>
-        <View style={{ width: 80 }} />
+        <Text style={styles.headerTitle}>{t('notif_settings') || 'Notifications'}</Text>
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView
@@ -117,18 +120,20 @@ const NotificationSettingsScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Gérer les notifications</Text>
+          <Text style={styles.sectionTitle}>{t('manage_notif_title') || 'Gérer les notifications'}</Text>
           <Text style={styles.sectionDescription}>
-            Choisissez les types de notifications que vous souhaitez recevoir
+            {t('manage_notif_desc') || 'Choisissez les types de notifications que vous souhaitez recevoir'}
           </Text>
 
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingIcon}>📰</Text>
+              <View style={styles.iconBg}>
+                <Ionicons name="newspaper-outline" size={20} color="#7b1fa2" />
+              </View>
               <View style={styles.settingText}>
                 <Text style={styles.settingLabel}>Articles</Text>
                 <Text style={styles.settingDescription}>
-                  Nouveaux articles et actualités
+                  {t('notif_articles_desc') || 'Nouveaux articles et actualités'}
                 </Text>
               </View>
             </View>
@@ -142,11 +147,13 @@ const NotificationSettingsScreen: React.FC = () => {
 
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingIcon}>📅</Text>
+              <View style={styles.iconBg}>
+                <Ionicons name="calendar-outline" size={20} color="#7b1fa2" />
+              </View>
               <View style={styles.settingText}>
-                <Text style={styles.settingLabel}>Rendez-vous</Text>
+                <Text style={styles.settingLabel}>{t('notif_appointments') || 'Rendez-vous'}</Text>
                 <Text style={styles.settingDescription}>
-                  Rappels de rendez-vous médicaux
+                  {t('notif_appointments_desc') || 'Rappels de rendez-vous médicaux'}
                 </Text>
               </View>
             </View>
@@ -160,11 +167,13 @@ const NotificationSettingsScreen: React.FC = () => {
 
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingIcon}>💬</Text>
+              <View style={styles.iconBg}>
+                <Ionicons name="chatbubble-outline" size={20} color="#7b1fa2" />
+              </View>
               <View style={styles.settingText}>
-                <Text style={styles.settingLabel}>Messages</Text>
+                <Text style={styles.settingLabel}>{t('notif_messages') || 'Messages'}</Text>
                 <Text style={styles.settingDescription}>
-                  Nouveaux messages privés
+                  {t('notif_messages_desc') || 'Nouveaux messages privés'}
                 </Text>
               </View>
             </View>
@@ -178,11 +187,13 @@ const NotificationSettingsScreen: React.FC = () => {
 
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingIcon}>👥</Text>
+              <View style={styles.iconBg}>
+                <Ionicons name="people-outline" size={20} color="#7b1fa2" />
+              </View>
               <View style={styles.settingText}>
                 <Text style={styles.settingLabel}>Communauté</Text>
                 <Text style={styles.settingDescription}>
-                  Réponses et mentions dans la communauté
+                  {t('notif_community_desc') || 'Réponses et mentions dans la communauté'}
                 </Text>
               </View>
             </View>
@@ -196,11 +207,13 @@ const NotificationSettingsScreen: React.FC = () => {
 
           <View style={styles.settingItem}>
             <View style={styles.settingInfo}>
-              <Text style={styles.settingIcon}>⚙️</Text>
+              <View style={styles.iconBg}>
+                <Ionicons name="settings-outline" size={20} color="#7b1fa2" />
+              </View>
               <View style={styles.settingText}>
-                <Text style={styles.settingLabel}>Système</Text>
+                <Text style={styles.settingLabel}>{t('notif_system') || 'Système'}</Text>
                 <Text style={styles.settingDescription}>
-                  Mises à jour et annonces importantes
+                  {t('notif_system_desc') || 'Mises à jour et annonces importantes'}
                 </Text>
               </View>
             </View>
@@ -221,7 +234,7 @@ const NotificationSettingsScreen: React.FC = () => {
           {saving ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text style={styles.saveButtonText}>Enregistrer</Text>
+            <Text style={styles.saveButtonText}>{t('save') || 'Enregistrer'}</Text>
           )}
         </MyPressable>
       </ScrollView>
@@ -311,8 +324,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  settingIcon: {
-    fontSize: 28,
+  iconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#f3e5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 12,
   },
   settingText: {
