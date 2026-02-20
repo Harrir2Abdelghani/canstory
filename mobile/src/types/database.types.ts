@@ -328,6 +328,103 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: []
+      }
+      annuaire_entries: {
+        Row: any
+        Insert: any
+        Update: any
+        Relationships: []
+      }
+      annuaire_medecin: {
+        Row: any
+        Insert: any
+        Update: any
+        Relationships: []
+      }
+      annuaire_pharmacie: {
+        Row: any
+        Insert: any
+        Update: any
+        Relationships: []
+      }
+      annuaire_pharmacies: {
+        Row: any
+        Insert: any
+        Update: any
+        Relationships: []
+      }
+      annuaire_laboratoire: {
+        Row: any
+        Insert: any
+        Update: any
+        Relationships: []
+      }
+      annuaire_laboratories: {
+        Row: any
+        Insert: any
+        Update: any
+        Relationships: []
+      }
+      annuaire_centre_cancer: {
+        Row: any
+        Insert: any
+        Update: any
+        Relationships: []
+      }
+      annuaire_cancer_centers: {
+        Row: any
+        Insert: any
+        Update: any
+        Relationships: []
+      }
+      annuaire_association: {
+        Row: any
+        Insert: any
+        Update: any
+        Relationships: []
+      }
+      annuaire_associations: {
+        Row: any
+        Insert: any
+        Update: any
+        Relationships: []
+      }
+      annuaire_psychologists: {
+        Row: any
+        Insert: any
+        Update: any
+        Relationships: []
+      }
+      likes: {
+        Row: any
+        Insert: any
+        Update: any
+        Relationships: []
+      }
+      bookmarks: {
+        Row: any
+        Insert: any
+        Update: any
+        Relationships: []
+      }
+      about_page: {
+        Row: any
+        Insert: any
+        Update: any
+        Relationships: []
+      }
+      team_members: {
+        Row: any
+        Insert: any
+        Update: any
+        Relationships: []
+      }
+      contact_info: {
+        Row: any
+        Insert: any
+        Update: any
+        Relationships: []
       }
     }
     Views: {

@@ -19,12 +19,6 @@ import {
   Clock, 
   CheckCircle2, 
   XCircle,
-  MoreVertical,
-  ThumbsUp,
-  MessageSquare,
-  User,
-  Activity,
-  Calendar,
   AlertCircle
 } from 'lucide-react'
 import {

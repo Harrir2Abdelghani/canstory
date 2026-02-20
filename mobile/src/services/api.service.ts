@@ -255,7 +255,7 @@ export class ApiService {
           table: 'notifications',
           filter: `user_id=eq.${userId}`,
         },
-        (payload) => {
+        (payload: any) => {
           callback(payload.new);
         }
       )
@@ -273,7 +273,7 @@ export class ApiService {
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload) => {
+        (payload: any) => {
           callback(payload.new);
         }
       )
