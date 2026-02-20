@@ -20,7 +20,6 @@ import {
   ShieldAlert,
   Trash2,
   Info,
-  Clock,
   Salad
 } from 'lucide-react'
 import { toast } from 'sonner'

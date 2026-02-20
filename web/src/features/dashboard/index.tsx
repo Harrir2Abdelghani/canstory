@@ -133,6 +133,12 @@ interface DashboardStats {
       networkIO: { in: string; out: string };
       dbConnections: number;
       cacheHitRate: string;
+      nodeVersion?: string;
+      storageBreakdown?: {
+        bdd: number;
+        media: number;
+        free: number;
+      };
     }
     activityMetrics: { 
       activeRate: string; 
@@ -273,22 +279,22 @@ export function Dashboard() {
       }
 
       drawSection('STATISTIQUES PLATEFORME', [
-        `Vues totales: ${stats?.analytics.cards.totalViews.value || '0'}`,
+        `Vues totales: ${stats?.analytics?.cards.totalViews.value || '0'}`,
         `Utilisateurs: ${stats?.users.total || '0'}`,
-        `Taux de Rebond: ${stats?.analytics.cards.bounceRate.value || '0%'}`,
-        `Session Moyenne: ${stats?.analytics.cards.avgSession.value || '0m'}`
+        `Taux de Rebond: ${stats?.analytics?.cards.bounceRate.value || '0%'}`,
+        `Session Moyenne: ${stats?.analytics?.cards.avgSession.value || '0m'}`
       ])
 
       drawSection('SANTÉ DU SYSTÈME', [
-        `Uptime: ${stats?.reports.systemMetrics.uptime || 'N/A'}`,
-        `CPU: ${stats?.reports.systemMetrics.cpuUsage || '0%'}`,
-        `RAM: ${stats?.reports.systemMetrics.memoryUsage || 'N/A'}`,
-        `Version Node: ${stats?.reports.systemMetrics.nodeVersion || 'N/A'}`
+        `Uptime: ${stats?.reports?.systemMetrics.uptime || 'N/A'}`,
+        `CPU: ${stats?.reports?.systemMetrics.cpuUsage || '0%'}`,
+        `RAM: ${stats?.reports?.systemMetrics.memoryUsage || 'N/A'}`,
+        `Version Node: ${stats?.reports?.systemMetrics.nodeVersion || 'N/A'}`
       ])
 
       drawSection('LISTE DES RESSOURCES', [
         `Annuaire (Approuvé): ${stats?.annuaire.approved || 0}`,
-        `Guides & Articles: ${stats?.content.guides + stats?.content.articles || 0}`,
+        `Guides & Articles: ${(stats?.content.guides || 0) + (stats?.content.articles || 0)}`,
         `Logements: ${stats?.accommodations.total || 0}`
       ])
 
@@ -302,7 +308,7 @@ export function Dashboard() {
       })
 
       const pdfBytes = await pdfDoc.save()
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+      const blob = new Blob([pdfBytes as any], { type: 'application/pdf' })
       const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -819,21 +825,21 @@ export function Dashboard() {
                          <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Télémétrie des Ressources</CardTitle>
                          <div className="flex gap-1.5 items-center">
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                            <span className="text-[9px] font-black uppercase text-white/50">NODE.JS {stats.reports.systemMetrics.nodeVersion || 'v20.1'}</span>
-                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="pt-6 space-y-7">
-                      <div className="space-y-5">
-                        <div className="space-y-2.5">
-                          <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                            <span className="text-white/30">Charge Processeur</span>
-                            <span className="text-violet-500 font-mono tracking-tighter">{stats.reports.systemMetrics.cpuUsage}</span>
+                             <span className="text-[9px] font-black uppercase text-white/50">NODE.JS {stats.reports?.systemMetrics.nodeVersion || 'v20.1'}</span>
                           </div>
-                          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                            <motion.div 
-                              initial={{ width: 0 }}
-                              animate={{ width: stats.reports.systemMetrics.cpuUsage }}
+                       </div>
+                     </CardHeader>
+                     <CardContent className="pt-6 space-y-7">
+                       <div className="space-y-5">
+                         <div className="space-y-2.5">
+                           <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+                             <span className="text-white/30">Charge Processeur</span>
+                             <span className="text-violet-500 font-mono tracking-tighter">{stats.reports?.systemMetrics.cpuUsage}</span>
+                           </div>
+                           <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                             <motion.div 
+                               initial={{ width: 0 }}
+                               animate={{ width: stats.reports?.systemMetrics.cpuUsage }}
                               className="h-full bg-gradient-to-r from-violet-600 to-indigo-500 rounded-full" 
                             />
                           </div>
@@ -853,19 +859,19 @@ export function Dashboard() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                            <div className="space-y-2">
-                              <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-white/30">
-                                 <span>Flux Entrant</span>
-                                 <span className="text-emerald-500">{stats.reports.systemMetrics.networkIO.in}</span>
-                              </div>
-                              <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                                 <div className="h-full bg-emerald-500/50" style={{ width: '40%' }} />
-                              </div>
-                           </div>
-                           <div className="space-y-2">
-                              <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-white/30">
-                                 <span>Flux Sortant</span>
-                                 <span className="text-amber-500">{stats.reports.systemMetrics.networkIO.out}</span>
-                              </div>
+                               <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-white/30">
+                                  <span>Flux Entrant</span>
+                                  <span className="text-emerald-500">{stats.reports?.systemMetrics.networkIO.in}</span>
+                               </div>
+                               <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                                  <div className="h-full bg-emerald-500/50" style={{ width: '40%' }} />
+                               </div>
+                            </div>
+                            <div className="space-y-2">
+                               <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-white/30">
+                                  <span>Flux Sortant</span>
+                                  <span className="text-amber-500">{stats.reports?.systemMetrics.networkIO.out}</span>
+                               </div>
                               <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                                  <div className="h-full bg-amber-500/50" style={{ width: '25%' }} />
                               </div>
@@ -875,26 +881,26 @@ export function Dashboard() {
 
                       <div className="grid grid-cols-2 gap-3 pt-6 border-t border-white/5">
                          <div className="p-3 bg-white/2 rounded-xl border border-white/5 hover:bg-white/5 transition-colors group">
-                            <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1 group-hover:text-emerald-400">Temps de Fonctionnement</p>
-                            <p className="text-sm font-black text-emerald-400 font-mono">{stats.reports.systemMetrics.uptime}</p>
-                         </div>
-                         <div className="p-3 bg-white/2 rounded-xl border border-white/5 hover:bg-white/5 transition-colors group">
-                            <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1 group-hover:text-white">Processus Actifs</p>
-                            <p className="text-sm font-black font-mono">{stats.reports.systemMetrics.activeProcesses}</p>
-                         </div>
-                      </div>
+                             <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1 group-hover:text-emerald-400">Temps de Fonctionnement</p>
+                             <p className="text-sm font-black text-emerald-400 font-mono">{stats.reports?.systemMetrics.uptime}</p>
+                          </div>
+                          <div className="p-3 bg-white/2 rounded-xl border border-white/5 hover:bg-white/5 transition-colors group">
+                             <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1 group-hover:text-white">Processus Actifs</p>
+                             <p className="text-sm font-black font-mono">{stats.reports?.systemMetrics.activeProcesses}</p>
+                          </div>
+                       </div>
 
-                      {/* Storage Breakdown Overlay */}
-                      <div className="pt-2">
-                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">Matrice de Stockage</span>
-                            <span className="text-[10px] font-black text-white/60">{stats.reports.systemMetrics.storageUsage}</span>
-                         </div>
-                         <div className="flex h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                            <div className="h-full bg-blue-500" style={{ width: `${stats.reports.systemMetrics.storageBreakdown?.bdd || 30}%` }} title="Base de données" />
-                            <div className="h-full bg-indigo-500" style={{ width: `${stats.reports.systemMetrics.storageBreakdown?.media || 15}%` }} title="Médias" />
-                            <div className="h-full bg-white/10" style={{ width: `${stats.reports.systemMetrics.storageBreakdown?.free || 55}%` }} title="Libre" />
-                         </div>
+                       {/* Storage Breakdown Overlay */}
+                       <div className="pt-2">
+                          <div className="flex items-center justify-between mb-2">
+                             <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">Matrice de Stockage</span>
+                             <span className="text-[10px] font-black text-white/60">{stats.reports?.systemMetrics.storageUsage}</span>
+                          </div>
+                          <div className="flex h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                             <div className="h-full bg-blue-500" style={{ width: `${stats.reports?.systemMetrics.storageBreakdown?.bdd || 30}%` }} title="Base de données" />
+                             <div className="h-full bg-indigo-500" style={{ width: `${stats.reports?.systemMetrics.storageBreakdown?.media || 15}%` }} title="Médias" />
+                             <div className="h-full bg-white/10" style={{ width: `${stats.reports?.systemMetrics.storageBreakdown?.free || 55}%` }} title="Libre" />
+                          </div>
                          <div className="flex gap-3 mt-2">
                             <div className="flex items-center gap-1.5 text-[8px] font-black uppercase text-white/30"><div className="h-1.5 w-1.5 rounded-full bg-blue-500" /> BDD</div>
                             <div className="flex items-center gap-1.5 text-[8px] font-black uppercase text-white/30"><div className="h-1.5 w-1.5 rounded-full bg-indigo-500" /> Stockage</div>
@@ -912,21 +918,21 @@ export function Dashboard() {
                        </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                       <div className="p-4 rounded-xl bg-red-50 border border-red-100 flex items-center justify-between">
-                          <div>
-                              <p className="text-2xl font-black text-red-600">{stats.reports.securityMetrics.threatsBlocked + (stats.comments?.pending || 0)}</p>
-                             <p className="text-[10px] font-bold text-red-700 uppercase">Menaces Bloquées</p>
-                          </div>
-                          <div className="text-right">
-                             <p className="text-xs font-bold text-red-600">Score</p>
-                             <p className="text-xl font-black text-red-600">{stats.reports.securityMetrics.securityScore}</p>
-                          </div>
+                        <div className="p-4 rounded-xl bg-red-50 border border-red-100 flex items-center justify-between">
+                           <div>
+                               <p className="text-2xl font-black text-red-600">{(stats.reports?.securityMetrics.threatsBlocked || 0) + (stats.comments?.pending || 0)}</p>
+                              <p className="text-[10px] font-bold text-red-700 uppercase">Menaces Bloquées</p>
+                           </div>
+                           <div className="text-right">
+                              <p className="text-xs font-bold text-red-600">Score</p>
+                              <p className="text-xl font-black text-red-600">{stats.reports?.securityMetrics.securityScore}</p>
+                           </div>
                        </div>
-                       <div className="space-y-2">
-                          <div className="flex justify-between text-[11px] font-medium border-b border-muted pb-2">
-                             <span className="text-muted-foreground">Dernière tentative d'intrusion</span>
-                             <span className="font-bold">{stats.reports.securityMetrics.lastBreachAttempt}</span>
-                          </div>
+                        <div className="space-y-2">
+                           <div className="flex justify-between text-[11px] font-medium border-b border-muted pb-2">
+                              <span className="text-muted-foreground">Dernière tentative d'intrusion</span>
+                              <span className="font-bold">{stats.reports?.securityMetrics.lastBreachAttempt}</span>
+                           </div>
                           <div className="flex justify-between text-[11px] font-medium border-b border-muted pb-2">
                              <span className="text-muted-foreground">Faille critique</span>
                              <span className="font-bold text-green-600">0 détecté</span>

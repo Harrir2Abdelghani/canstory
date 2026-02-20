@@ -32,7 +32,6 @@ import {
   ExternalLink,
   ChevronUp,
   ChevronDown,
-  Info,
   ShieldCheck,
   LayoutList
 } from 'lucide-react'

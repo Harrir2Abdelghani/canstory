@@ -203,6 +203,14 @@ export function I3lamManagement() {
     }
   }
 
+  const fetchData = async () => {
+    await Promise.all([
+      fetchArticles(),
+      fetchStats(),
+      fetchCategories()
+    ])
+  }
+
   const filteredArticles = useMemo(() => {
     if (!searchTerm.trim()) return articles
 

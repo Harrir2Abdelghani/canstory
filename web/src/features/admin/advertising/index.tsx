@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { Megaphone, Search, Eye, CheckCircle, XCircle, Clock, AlertTriangle, Filter, ExternalLink, Calendar, Mail, Phone, User, Landmark, ShieldCheck, Check, FileText } from 'lucide-react'
+import { Megaphone, Search, Eye, CheckCircle, XCircle, Clock, AlertTriangle, Filter, ExternalLink, Calendar, Mail, Phone, ShieldCheck, Check } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,
