@@ -9,7 +9,23 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { Home, Search, Plus, Edit, Trash2, Phone, Bed, Users, Filter } from 'lucide-react'
+import { 
+  Home, 
+  Search, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  Phone, 
+  Bed, 
+  Users, 
+  Filter, 
+  MapPin, 
+  ShieldAlert, 
+  CheckCircle2, 
+  Info,
+  BookOpen,
+  Navigation
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -94,8 +110,14 @@ export function AccommodationsManagement() {
   const [wilayaFilter, setWilayaFilter] = useState('all')
   const [availabilityFilter, setAvailabilityFilter] = useState('all')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [viewingAccommodation, setViewingAccommodation] = useState<Accommodation | null>(null)
+  const [accommodationToDelete, setAccommodationToDelete] = useState<Accommodation | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState(emptyForm)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     fetchAccommodations()
@@ -170,6 +192,7 @@ export function AccommodationsManagement() {
     }
 
     try {
+      setIsSaving(true)
       const payload = {
         ...formData,
         amenities: formData.amenities ? formData.amenities.split('\n').filter(Boolean) : [],
@@ -192,10 +215,40 @@ export function AccommodationsManagement() {
     } catch (error: any) {
       console.error('Save error:', error)
       toast.error(error.message || 'Erreur lors de la sauvegarde')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleViewDetails = (accommodation: Accommodation) => {
+    setViewingAccommodation(accommodation)
+    setIsViewDialogOpen(true)
+  }
+
+  const handleOpenDelete = (accommodation: Accommodation) => {
+    setAccommodationToDelete(accommodation)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!accommodationToDelete) return
+    setIsDeleting(true)
+    try {
+      await apiClient.instance.delete(`/admin/accommodations/${accommodationToDelete.id}`)
+      toast.success('Logement supprimé avec succès')
+      setIsDeleteDialogOpen(false)
+      fetchAccommodations()
+      fetchStats()
+    } catch (error) {
+      toast.error('Erreur lors de la suppression')
+    } finally {
+      setIsDeleting(false)
+      setAccommodationToDelete(null)
     }
   }
 
   const handleEdit = (accommodation: Accommodation) => {
+    // Stop propagation if needed, but here it's called from button click
     setEditingId(accommodation.id)
     setFormData({
       name: accommodation.name,
@@ -216,20 +269,6 @@ export function AccommodationsManagement() {
     setIsDialogOpen(true)
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Voulez-vous vraiment supprimer ce logement ?')) return
-
-    try {
-      await apiClient.instance.delete(`/admin/accommodations/${id}`)
-
-      toast.success('Logement supprimé')
-      await fetchAccommodations()
-      await fetchStats()
-    } catch (error) {
-      console.error('Delete error:', error)
-      toast.error('Erreur lors de la suppression')
-    }
-  }
 
   const handleAddNew = () => {
     setEditingId(null)
@@ -398,9 +437,13 @@ export function AccommodationsManagement() {
                       </TableRow>
                     ) : (
                       accommodations.map((accommodation) => (
-                        <TableRow key={accommodation.id}>
+                        <TableRow 
+                          key={accommodation.id} 
+                          className='hover:bg-muted/50 transition-colors cursor-pointer group'
+                          onClick={() => handleViewDetails(accommodation)}
+                        >
                           <TableCell className='font-medium'>
-                            <div className='flex items-center gap-2'>
+                            <div className='flex items-center gap-2 group-hover:text-primary transition-colors'>
                               <Home className='h-4 w-4 text-muted-foreground' />
                               {accommodation.name}
                             </div>
@@ -426,21 +469,21 @@ export function AccommodationsManagement() {
                               <Badge variant='outline' className='bg-gray-50 text-gray-700'>Inactif</Badge>
                             )}
                           </TableCell>
-                          <TableCell className='text-right'>
+                          <TableCell className='text-right' onClick={(e) => e.stopPropagation()}>
                             <div className='flex items-center justify-end gap-2'>
                               <Button
                                 size='sm'
-                                variant='outline'
-                                className='h-8 w-8 p-0'
+                                variant='ghost'
+                                className='h-8 w-8 p-0 text-primary'
                                 onClick={() => handleEdit(accommodation)}
                               >
                                 <Edit className='h-4 w-4' />
                               </Button>
                               <Button
                                 size='sm'
-                                variant='outline'
-                                className='h-8 w-8 p-0 text-destructive hover:text-destructive'
-                                onClick={() => handleDelete(accommodation.id)}
+                                variant='ghost'
+                                className='h-8 w-8 p-0 text-destructive hover:text-white hover:bg-destructive'
+                                onClick={() => handleOpenDelete(accommodation)}
                               >
                                 <Trash2 className='h-4 w-4' />
                               </Button>
@@ -459,15 +502,20 @@ export function AccommodationsManagement() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className='sm:max-w-[700px] max-h-[90vh] overflow-y-auto'>
-          <DialogHeader>
-            <DialogTitle>{editingId ? 'Modifier le logement' : 'Ajouter un logement'}</DialogTitle>
-            <DialogDescription>
-              Remplissez les informations du logement
+        <DialogContent className='sm:max-w-[750px] p-0 overflow-hidden flex flex-col max-h-[92vh] border-none shadow-2xl rounded-2xl'>
+          <DialogHeader className='p-6 pb-0 shrink-0'>
+            <div className='flex items-center gap-2 text-emerald-600 mb-1'>
+               <Plus className='w-5 h-5' />
+               <span className='text-[10px] font-black uppercase tracking-widest'>Gestion Logement</span>
+            </div>
+            <DialogTitle className='text-2xl font-black tracking-tight'>{editingId ? 'Modifier le logement' : 'Ajouter un logement'}</DialogTitle>
+            <DialogDescription className='text-slate-500'>
+              Remplissez les informations ci-dessous pour {editingId ? 'mettre à jour' : 'publier'} ce logement.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className='grid gap-4 py-4'>
+          
+          <form onSubmit={handleSubmit} className='flex-1 overflow-hidden flex flex-col'>
+            <div className='flex-1 overflow-y-auto p-6 space-y-6 border-t border-slate-50 custom-scrollbar bg-slate-50/10'>
               <div className='grid grid-cols-2 gap-4'>
                 <div className='space-y-2'>
                   <Label htmlFor='name'>Nom *</Label>
@@ -598,6 +646,70 @@ export function AccommodationsManagement() {
                 />
               </div>
 
+              <div className='grid grid-cols-2 gap-4'>
+                <div className='space-y-2'>
+                  <Label htmlFor='latitude' className='text-xs font-bold'>Latitude</Label>
+                  <Input
+                    id='latitude'
+                    type='number'
+                    step='any'
+                    value={formData.latitude || ''}
+                    onChange={(e) => setFormData({ ...formData, latitude: parseFloat(e.target.value) || null })}
+                    placeholder='ex: 36.7538'
+                    className='h-9'
+                  />
+                </div>
+                <div className='space-y-2'>
+                  <Label htmlFor='longitude' className='text-xs font-bold'>Longitude</Label>
+                  <Input
+                    id='longitude'
+                    type='number'
+                    step='any'
+                    value={formData.longitude || ''}
+                    onChange={(e) => setFormData({ ...formData, longitude: parseFloat(e.target.value) || null })}
+                    placeholder='ex: 3.0588'
+                    className='h-9'
+                  />
+                </div>
+              </div>
+
+              <div className='space-y-2'>
+                <Label className='text-xs font-bold'>Localisation (Aperçu)</Label>
+                <div className='h-[180px] rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center relative overflow-hidden group'>
+                  {formData.latitude && formData.longitude ? (
+                    <iframe
+                      width="100%"
+                      height="100%"
+                      frameBorder="0"
+                      style={{ border: 0 }}
+                      src={`https://maps.google.com/maps?q=${formData.latitude},${formData.longitude}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                    ></iframe>
+                  ) : (
+                    <div className='text-center p-4'>
+                      <Navigation className='w-6 h-6 text-slate-300 mx-auto mb-1' />
+                      <p className='text-[10px] text-slate-400'>Entrez les coordonnées ou</p>
+                      <Button 
+                        type='button' 
+                        variant='link' 
+                        size='sm' 
+                        className='text-emerald-600 text-xs h-auto p-0'
+                        onClick={() => {
+                          navigator.geolocation.getCurrentPosition((pos) => {
+                            setFormData({
+                              ...formData,
+                              latitude: pos.coords.latitude,
+                              longitude: pos.coords.longitude
+                            })
+                          })
+                        }}
+                      >
+                        Ma position actuelle
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className='flex items-center space-x-2'>
                 <Switch
                   id='is_active'
@@ -607,15 +719,132 @@ export function AccommodationsManagement() {
                 <Label htmlFor='is_active'>Logement actif</Label>
               </div>
             </div>
-            <DialogFooter>
-              <Button type='button' variant='outline' onClick={() => setIsDialogOpen(false)}>
+
+            <DialogFooter className='p-6 border-t shrink-0 bg-slate-50'>
+              <Button type='button' variant='ghost' onClick={() => setIsDialogOpen(false)} disabled={isSaving} className='rounded-full px-6'>
                 Annuler
               </Button>
-              <Button type='submit'>
-                {editingId ? 'Mettre à jour' : 'Créer'}
+              <Button type='submit' disabled={isSaving} className='rounded-full px-8 bg-emerald-600 hover:bg-emerald-700 gap-2 shadow-lg shadow-emerald-100'>
+                {isSaving && <div className='h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white' />}
+                {editingId ? 'Mettre à jour' : 'Créer le logement'}
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Details Dialog - Simplified & Clean */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className='max-w-2xl max-h-[90vh] flex flex-col p-6 overflow-hidden rounded-2xl'>
+          <div className='flex items-center justify-between mb-4'>
+            <div className='space-y-1'>
+               <h2 className='text-2xl font-bold text-slate-900'>{viewingAccommodation?.name}</h2>
+               <div className='flex items-center gap-2'>
+                  <Badge variant='outline' className='text-emerald-600 border-emerald-100 bg-emerald-50'>{viewingAccommodation?.wilaya}</Badge>
+                  {viewingAccommodation && getAvailabilityBadge(viewingAccommodation)}
+               </div>
+            </div>
+            <Button variant='ghost' size='icon' onClick={() => setIsViewDialogOpen(false)} className='rounded-full'>
+              <Edit className='h-4 w-4' onClick={() => {
+                 setIsViewDialogOpen(false)
+                 if (viewingAccommodation) handleEdit(viewingAccommodation)
+              }} />
+            </Button>
+          </div>
+
+          <div className='flex-1 overflow-y-auto space-y-6 pr-2'>
+            <div className='space-y-2'>
+              <h3 className='text-sm font-bold text-slate-500 uppercase flex items-center gap-2'><Info className='w-4 h-4' /> Description</h3>
+              <p className='text-slate-600 text-sm leading-relaxed'>{viewingAccommodation?.description || 'Pas de description.'}</p>
+            </div>
+
+            <div className='grid grid-cols-2 gap-4 border-y py-4'>
+               <div className='space-y-1'>
+                  <span className='text-[10px] uppercase font-bold text-slate-400'>Contact</span>
+                  <p className='text-sm font-semibold flex items-center gap-2'><Phone className='w-3.5 h-3.5' /> {viewingAccommodation?.phone}</p>
+               </div>
+               <div className='space-y-1'>
+                  <span className='text-[10px] uppercase font-bold text-slate-400'>Capacité</span>
+                  <p className='text-sm font-semibold flex items-center gap-2'><Users className='w-3.5 h-3.5' /> {viewingAccommodation?.available_beds} / {viewingAccommodation?.capacity} libres</p>
+               </div>
+            </div>
+
+            <div className='space-y-2'>
+              <h3 className='text-sm font-bold text-slate-500 uppercase flex items-center gap-2'><MapPin className='w-4 h-4' /> Adresse</h3>
+              <p className='text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-100'>{viewingAccommodation?.address}, {viewingAccommodation?.commune}, {viewingAccommodation?.wilaya}</p>
+              
+              {viewingAccommodation?.latitude && viewingAccommodation?.longitude && (
+                <div className='aspect-video rounded-xl overflow-hidden border border-slate-200 mt-2'>
+                  <iframe
+                    width="100%"
+                    height="100%"
+                    frameBorder="0"
+                    style={{ border: 0 }}
+                    src={`https://maps.google.com/maps?q=${viewingAccommodation.latitude},${viewingAccommodation.longitude}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
+                  ></iframe>
+                </div>
+              )}
+            </div>
+
+            <div className='grid grid-cols-2 gap-6'>
+               <div className='space-y-2'>
+                  <h3 className='text-sm font-bold text-slate-500 uppercase flex items-center gap-2'><CheckCircle2 className='w-4 h-4 text-emerald-500' /> Équipements</h3>
+                  <ul className='text-xs space-y-1 text-slate-600'>
+                     {viewingAccommodation?.amenities?.map((a, i) => <li key={i} className='flex items-center gap-2'>• {a}</li>)}
+                  </ul>
+               </div>
+               <div className='space-y-2'>
+                  <h3 className='text-sm font-bold text-slate-500 uppercase flex items-center gap-2'><BookOpen className='w-4 h-4 text-amber-500' /> Règlement</h3>
+                  <ul className='text-xs space-y-1 text-slate-600'>
+                     {viewingAccommodation?.rules?.map((r, i) => <li key={i} className='flex items-center gap-2'>• {r}</li>)}
+                  </ul>
+               </div>
+            </div>
+          </div>
+
+          <div className='mt-6 pt-4 border-t flex justify-end gap-3'>
+            <Button variant='outline' onClick={() => setIsViewDialogOpen(false)} className='rounded-full px-6'>Fermer</Button>
+            <Button className='rounded-full px-6 bg-emerald-600 hover:bg-emerald-700' onClick={() => {
+               setIsViewDialogOpen(false)
+               if (viewingAccommodation) handleEdit(viewingAccommodation)
+            }}>Modifier</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className='sm:max-w-[400px] p-6 border-none shadow-2xl rounded-2xl'>
+          <div className='flex flex-col items-center text-center space-y-4'>
+            <div className='w-16 h-16 bg-red-50 rounded-full flex items-center justify-center'>
+              <ShieldAlert className='w-8 h-8 text-red-500' />
+            </div>
+            <div className='space-y-1.5'>
+              <DialogTitle className='text-xl font-bold text-slate-900'>Confirmer la suppression</DialogTitle>
+              <p className='text-slate-500 text-sm leading-relaxed'>
+                 Voulez-vous vraiment supprimer ce logement ?<br/>
+                 <span className='font-bold text-slate-700 mt-2 block italic'>"{accommodationToDelete?.name}"</span>
+              </p>
+            </div>
+          </div>
+          <DialogFooter className='mt-8 gap-3 sm:gap-0 sm:flex-row'>
+            <Button variant='ghost' onClick={() => setIsDeleteDialogOpen(false)} className='rounded-full flex-1' disabled={isDeleting}>
+              Annuler
+            </Button>
+            <Button 
+              variant='destructive' 
+              onClick={handleConfirmDelete} 
+              className='rounded-full flex-1 gap-2 font-bold shadow-lg shadow-red-100'
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <div className='h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white' />
+              ) : (
+                <Trash2 className='h-4 w-4' />
+              )}
+              Supprimer
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

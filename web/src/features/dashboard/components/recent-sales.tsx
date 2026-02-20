@@ -40,7 +40,7 @@ export function RecentSales({ data }: RecentSalesProps) {
   if (!data || data.length === 0) {
     return (
       <div className='flex h-40 items-center justify-center text-sm text-muted-foreground'>
-        No entries available
+        Aucune inscription récente
       </div>
     )
   }

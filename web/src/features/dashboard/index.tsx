@@ -1,41 +1,31 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import { 
   Users, 
   BookOpen, 
   Home, 
   FileText, 
-  BarChart3,
   TrendingUp,
-  TrendingDown,
   ArrowUpRight,
   Megaphone,
   Download,
-  ShieldCheck,
   Zap,
   RefreshCw,
   Cpu,
   Database,
-  HardDrive,
   Lock,
-  Share2,
-  Trash2,
   Archive,
-  AlertCircle,
   CheckCircle2,
-  ChevronRight,
   Terminal,
   ShieldAlert,
   Server,
-  DownloadCloud,
-  Eraser,
-  Wrench,
   Activity,
   Filter,
-  MoreHorizontal,
   LayoutGrid,
   List,
-  Clock
+  Clock,
+  X
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -66,6 +56,15 @@ import { useAuthStore } from '@/stores/auth-store'
 import { apiClient } from '@/lib/api-client'
 
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+} from '@/components/ui/dropdown-menu'
 
 interface DashboardStats {
   annuaire: {
@@ -204,6 +203,8 @@ export function Dashboard() {
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [dateFilter, setDateFilter] = useState('all')
 
   useEffect(() => {
     let isMounted = true
@@ -211,7 +212,10 @@ export function Dashboard() {
       if (!auth.user) return
 
       try {
-        const { data } = await apiClient.instance.get('/admin/stats/dashboard')
+        setLoading(true)
+        const { data } = await apiClient.instance.get('/admin/stats/dashboard', {
+          params: { period: dateFilter }
+        })
         if (isMounted) {
           console.log('[DASHBOARD] Stats received:', data)
           setStats(data)
@@ -225,12 +229,14 @@ export function Dashboard() {
 
     fetchStats()
     return () => { isMounted = false }
-  }, [auth.user])
+  }, [auth.user, dateFilter])
 
   const handleRefresh = async () => {
     setLoading(true)
     try {
-      const { data } = await apiClient.instance.get('/admin/stats/dashboard')
+      const { data } = await apiClient.instance.get('/admin/stats/dashboard', {
+        params: { period: dateFilter }
+      })
       setStats(data)
       toast.success('Données actualisées avec succès')
     } catch (error) {
@@ -241,20 +247,94 @@ export function Dashboard() {
     }
   }
 
-  const handleDownload = (reportName: string) => {
-    toast.promise(
-      new Promise((resolve) => setTimeout(resolve, 1500)),
-      {
-        loading: `Préparation du téléchargement: ${reportName}...`,
-        success: `Le rapport "${reportName}" a été téléchargé avec succès.`,
-        error: 'Une erreur est survenue lors du téléchargement.',
+  const handleDownload = async (reportName: string) => {
+    try {
+      const pdfDoc = await PDFDocument.create()
+      const page = pdfDoc.addPage([600, 800])
+      const { width, height } = page.getSize()
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica)
+      const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold)
+      
+      // Header
+      page.drawRectangle({ x: 0, y: height - 80, width, height: 80, color: rgb(0.3, 0.2, 0.6) })
+      page.drawText('CANSTORY - RAPPORT ADMINISTRATIVE', { x: 50, y: height - 45, size: 18, font: boldFont, color: rgb(1, 1, 1) })
+      page.drawText(`Généré le: ${new Date().toLocaleString('fr-FR')}`, { x: 50, y: height - 65, size: 10, font, color: rgb(0.9, 0.9, 0.9) })
+
+      let yPos = height - 120
+
+      const drawSection = (title: string, data: string[]) => {
+        page.drawText(title, { x: 50, y: yPos, size: 14, font: boldFont, color: rgb(0.2, 0.2, 0.2) })
+        yPos -= 20
+        data.forEach(line => {
+          page.drawText(`• ${line}`, { x: 70, y: yPos, size: 11, font, color: rgb(0.3, 0.3, 0.3) })
+          yPos -= 18
+        })
+        yPos -= 10
       }
-    )
+
+      drawSection('STATISTIQUES PLATEFORME', [
+        `Vues totales: ${stats?.analytics.cards.totalViews.value || '0'}`,
+        `Utilisateurs: ${stats?.users.total || '0'}`,
+        `Taux de Rebond: ${stats?.analytics.cards.bounceRate.value || '0%'}`,
+        `Session Moyenne: ${stats?.analytics.cards.avgSession.value || '0m'}`
+      ])
+
+      drawSection('SANTÉ DU SYSTÈME', [
+        `Uptime: ${stats?.reports.systemMetrics.uptime || 'N/A'}`,
+        `CPU: ${stats?.reports.systemMetrics.cpuUsage || '0%'}`,
+        `RAM: ${stats?.reports.systemMetrics.memoryUsage || 'N/A'}`,
+        `Version Node: ${stats?.reports.systemMetrics.nodeVersion || 'N/A'}`
+      ])
+
+      drawSection('LISTE DES RESSOURCES', [
+        `Annuaire (Approuvé): ${stats?.annuaire.approved || 0}`,
+        `Guides & Articles: ${stats?.content.guides + stats?.content.articles || 0}`,
+        `Logements: ${stats?.accommodations.total || 0}`
+      ])
+
+      // Footer
+      page.drawText('Propriété de Canstory Admin Management. Document Confidentiel.', {
+        x: width / 2 - 150,
+        y: 40,
+        size: 9,
+        font,
+        color: rgb(0.6, 0.6, 0.6)
+      })
+
+      const pdfBytes = await pdfDoc.save()
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `rapport_${reportName.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      toast.success(`Le rapport PDF "${reportName}" a été généré avec succès.`)
+    } catch (err) {
+      console.error('PDF Generation Error:', err)
+      toast.error('Erreur lors de la génération du PDF.')
+    }
   }
 
   const renderContent = () => {
-    if (loading || !stats) {
+    if (loading && !stats) {
       return <DashboardSkeleton />
+    }
+
+    if (!stats) {
+      return (
+        <div className='flex flex-col items-center justify-center h-[50vh] space-y-4'>
+           <div className='p-4 rounded-full bg-red-50 text-red-600'>
+              <X className='h-12 w-12' />
+           </div>
+           <h2 className='text-xl font-bold'>Échec du chargement des statistiques</h2>
+           <p className='text-muted-foreground'>Une erreur est survenue lors de la récupération des données.</p>
+           <Button onClick={() => handleRefresh()}>Réessayer</Button>
+        </div>
+      )
     }
 
     return (
@@ -262,7 +342,7 @@ export function Dashboard() {
         variants={container}
         initial="hidden"
         animate="show"
-        className="space-y-8"
+        className={`space-y-8 transition-opacity duration-300 ${loading ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}
       >
         <div className='flex flex-col gap-2 md:flex-row md:items-center md:justify-between'>
           <div>
@@ -293,11 +373,43 @@ export function Dashboard() {
           </div>
 
           <TabsContent value='overview' className='space-y-8 mt-0 border-none p-0 outline-none'>
-            {/* Dashboard Controls */}
+             {/* Dashboard Controls */}
             <div className="flex items-center justify-between">
                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" className="h-8 font-bold text-xs"><Filter className="mr-2 h-3.5 w-3.5" /> Filtrer</Button>
-                  <Button variant="outline" size="sm" className="h-8 font-bold text-xs"><LayoutGrid className="mr-2 h-3.5 w-3.5" /> Grille</Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="h-8 font-bold text-xs">
+                        <Filter className="mr-2 h-3.5 w-3.5" /> 
+                        {dateFilter === 'all' ? 'Filtrer' : `Filtre: ${dateFilter}`}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-48">
+                      <DropdownMenuLabel>Période</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuRadioGroup value={dateFilter} onValueChange={(val) => {
+                        setDateFilter(val)
+                        handleRefresh()
+                      }}>
+                        <DropdownMenuRadioItem value="all">Tout le temps</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="today">Aujourd'hui</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="7d">7 derniers jours</DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="30d">30 derniers jours</DropdownMenuRadioItem>
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <Button 
+                    variant={viewMode === 'grid' ? 'secondary' : 'outline'} 
+                    size="sm" 
+                    className="h-8 font-bold text-xs"
+                    onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                  >
+                    {viewMode === 'grid' ? (
+                      <><LayoutGrid className="mr-2 h-3.5 w-3.5" /> Grille</>
+                    ) : (
+                      <><List className="mr-2 h-3.5 w-3.5" /> Liste</>
+                    )}
+                  </Button>
                </div>
                <div className="flex items-center gap-2">
                   <Badge variant="outline" className="text-[10px] font-bold bg-green-50 text-green-600 border-green-200">Système Operational</Badge>
@@ -306,11 +418,11 @@ export function Dashboard() {
             </div>
 
             {/* Main Metrics */}
-            <motion.div
+             <motion.div
               variants={container}
               initial="hidden"
               animate="show"
-              className='grid gap-6 sm:grid-cols-2 lg:grid-cols-4'
+              className={`grid gap-6 ${viewMode === 'grid' ? 'sm:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1'}`}
             >
               {/* Users Card */}
               <motion.div variants={item}>
@@ -561,7 +673,7 @@ export function Dashboard() {
                 <div className="lg:col-span-8 space-y-6">
                   {/* Performance Indicators Row */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                     <Card className="border-none shadow-sm bg-white dark:bg-card p-6">
+                      <Card className="border-none shadow-sm bg-white dark:bg-card p-6">
                         <div className="flex items-center justify-between mb-4">
                            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Database className="h-5 w-5" /></div>
                            <Badge variant="outline" className="text-[10px] font-bold border-blue-200 text-blue-600">DB Live</Badge>
@@ -574,7 +686,7 @@ export function Dashboard() {
                      <Card className="border-none shadow-sm bg-white dark:bg-card p-6">
                         <div className="flex items-center justify-between mb-4">
                            <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><Zap className="h-5 w-5" /></div>
-                           <Badge variant="outline" className="text-[10px] font-bold border-amber-200 text-amber-600">Optimum</Badge>
+                           <Badge variant="outline" className="text-[10px] font-bold border-amber-200 text-amber-600">Optimisé</Badge>
                         </div>
                         <div className="space-y-1">
                            <p className="text-2xl font-black">{stats.reports.systemMetrics.cacheHitRate}</p>
@@ -662,7 +774,7 @@ export function Dashboard() {
                      <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 pb-3">
                         <div className="flex items-center gap-2">
                            <Terminal className="h-4 w-4 text-green-400" />
-                           <CardTitle className="text-sm font-bold uppercase tracking-widest text-green-400">Live System Console</CardTitle>
+                           <CardTitle className="text-sm font-bold uppercase tracking-widest text-green-400">Console Système en Direct</CardTitle>
                         </div>
                         <div className="flex gap-2">
                            <div className="h-2 w-2 rounded-full bg-red-500" />
@@ -685,8 +797,8 @@ export function Dashboard() {
                         ))}
                         <div className="flex gap-3 animate-pulse">
                            <span className="text-white/30">[{new Date().toLocaleTimeString('fr-FR')}]</span>
-                           <span className="text-green-500 font-bold">READY</span>
-                           <span className="text-green-400 font-medium">Monitoring system bus...</span>
+                           <span className="text-green-500 font-bold">PRÊT</span>
+                           <span className="text-green-400 font-medium">Surveillance du bus système...</span>
                         </div>
                      </CardContent>
                      <div className="p-2 border-t border-white/5 bg-black/40 text-center">
@@ -704,10 +816,10 @@ export function Dashboard() {
                     </div>
                     <CardHeader className="border-b border-white/5 bg-white/2 pb-3">
                       <div className="flex items-center justify-between">
-                         <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Resource Telemetry</CardTitle>
-                         <div className="flex gap-1.5 Items-center">
+                         <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Télémétrie des Ressources</CardTitle>
+                         <div className="flex gap-1.5 items-center">
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                            <span className="text-[9px] font-black uppercase text-white/50">Node_JS v20.1</span>
+                            <span className="text-[9px] font-black uppercase text-white/50">NODE.JS {stats.reports.systemMetrics.nodeVersion || 'v20.1'}</span>
                          </div>
                       </div>
                     </CardHeader>
@@ -715,7 +827,7 @@ export function Dashboard() {
                       <div className="space-y-5">
                         <div className="space-y-2.5">
                           <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                            <span className="text-white/30">Processor Load</span>
+                            <span className="text-white/30">Charge Processeur</span>
                             <span className="text-violet-500 font-mono tracking-tighter">{stats.reports.systemMetrics.cpuUsage}</span>
                           </div>
                           <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
@@ -728,7 +840,7 @@ export function Dashboard() {
                         </div>
                         <div className="space-y-2.5">
                           <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-                            <span className="text-white/30">Buffer Allocation</span>
+                            <span className="text-white/30">Allocation Buffer (RAM)</span>
                             <span className="text-blue-500 font-mono tracking-tighter">{stats.reports.systemMetrics.memoryUsage}</span>
                           </div>
                           <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
@@ -742,7 +854,7 @@ export function Dashboard() {
                         <div className="grid grid-cols-2 gap-4">
                            <div className="space-y-2">
                               <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-white/30">
-                                 <span>Net In</span>
+                                 <span>Flux Entrant</span>
                                  <span className="text-emerald-500">{stats.reports.systemMetrics.networkIO.in}</span>
                               </div>
                               <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
@@ -751,7 +863,7 @@ export function Dashboard() {
                            </div>
                            <div className="space-y-2">
                               <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-white/30">
-                                 <span>Net Out</span>
+                                 <span>Flux Sortant</span>
                                  <span className="text-amber-500">{stats.reports.systemMetrics.networkIO.out}</span>
                               </div>
                               <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
@@ -763,11 +875,11 @@ export function Dashboard() {
 
                       <div className="grid grid-cols-2 gap-3 pt-6 border-t border-white/5">
                          <div className="p-3 bg-white/2 rounded-xl border border-white/5 hover:bg-white/5 transition-colors group">
-                            <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1 group-hover:text-emerald-400">Total Uptime</p>
+                            <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1 group-hover:text-emerald-400">Temps de Fonctionnement</p>
                             <p className="text-sm font-black text-emerald-400 font-mono">{stats.reports.systemMetrics.uptime}</p>
                          </div>
                          <div className="p-3 bg-white/2 rounded-xl border border-white/5 hover:bg-white/5 transition-colors group">
-                            <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1 group-hover:text-white">Active Thrds</p>
+                            <p className="text-[9px] font-black text-white/30 uppercase tracking-widest mb-1 group-hover:text-white">Processus Actifs</p>
                             <p className="text-sm font-black font-mono">{stats.reports.systemMetrics.activeProcesses}</p>
                          </div>
                       </div>
@@ -775,17 +887,17 @@ export function Dashboard() {
                       {/* Storage Breakdown Overlay */}
                       <div className="pt-2">
                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">Storage Matrix</span>
+                            <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">Matrice de Stockage</span>
                             <span className="text-[10px] font-black text-white/60">{stats.reports.systemMetrics.storageUsage}</span>
                          </div>
                          <div className="flex h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                            <div className="h-full bg-blue-500" style={{ width: '30%' }} title="Database" />
-                            <div className="h-full bg-indigo-500" style={{ width: '15%' }} title="Media" />
-                            <div className="h-full bg-white/10" style={{ width: '55%' }} title="Free" />
+                            <div className="h-full bg-blue-500" style={{ width: `${stats.reports.systemMetrics.storageBreakdown?.bdd || 30}%` }} title="Base de données" />
+                            <div className="h-full bg-indigo-500" style={{ width: `${stats.reports.systemMetrics.storageBreakdown?.media || 15}%` }} title="Médias" />
+                            <div className="h-full bg-white/10" style={{ width: `${stats.reports.systemMetrics.storageBreakdown?.free || 55}%` }} title="Libre" />
                          </div>
                          <div className="flex gap-3 mt-2">
-                            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase text-white/30"><div className="h-1.5 w-1.5 rounded-full bg-blue-500" /> DB</div>
-                            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase text-white/30"><div className="h-1.5 w-1.5 rounded-full bg-indigo-500" /> Storage</div>
+                            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase text-white/30"><div className="h-1.5 w-1.5 rounded-full bg-blue-500" /> BDD</div>
+                            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase text-white/30"><div className="h-1.5 w-1.5 rounded-full bg-indigo-500" /> Stockage</div>
                          </div>
                       </div>
                     </CardContent>
@@ -796,13 +908,13 @@ export function Dashboard() {
                     <CardHeader className="pb-2">
                        <CardTitle className="text-sm font-black uppercase tracking-widest text-red-600 flex items-center gap-2">
                           <ShieldAlert className="h-4 w-4" />
-                          Security Center
+                          Centre de Sécurité
                        </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                        <div className="p-4 rounded-xl bg-red-50 border border-red-100 flex items-center justify-between">
                           <div>
-                             <p className="text-2xl font-black text-red-600">{stats.reports.securityMetrics.threatsBlocked}</p>
+                              <p className="text-2xl font-black text-red-600">{stats.reports.securityMetrics.threatsBlocked + (stats.comments?.pending || 0)}</p>
                              <p className="text-[10px] font-bold text-red-700 uppercase">Menaces Bloquées</p>
                           </div>
                           <div className="text-right">

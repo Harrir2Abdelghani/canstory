@@ -31,7 +31,10 @@ import {
   Paperclip,
   ExternalLink,
   ChevronUp,
-  ChevronDown
+  ChevronDown,
+  Info,
+  ShieldCheck,
+  LayoutList
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Header } from '@/components/layout/header'
@@ -127,8 +130,15 @@ export function Nassa2ihManagement() {
 
   // Dialog state
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [guideToDelete, setGuideToDelete] = useState<Guide | null>(null)
   const [editingGuide, setEditingGuide] = useState<Partial<Guide> | null>(null)
+  const [viewingGuide, setViewingGuide] = useState<Guide | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [activeTab, setActiveTab] = useState('general')
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false)
 
   useEffect(() => {
     fetchInitialData()
@@ -174,6 +184,41 @@ export function Nassa2ihManagement() {
     return () => clearTimeout(timer)
   }, [search, categoryFilter, statusFilter, difficultyFilter])
 
+  const handleViewDetails = async (guide: Guide) => {
+    setViewingGuide(guide)
+    setIsViewDialogOpen(true)
+    setIsLoadingDetails(true)
+    try {
+      const res = await apiClient.instance.get(`/admin/nassa2ih/guides/${guide.id}`)
+      setViewingGuide(res.data.data)
+    } catch (error) {
+      toast.error('Erreur lors du chargement des détails')
+    } finally {
+      setIsLoadingDetails(false)
+    }
+  }
+
+  const handleOpenDelete = (guide: Guide) => {
+    setGuideToDelete(guide)
+    setIsDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!guideToDelete) return
+    setIsDeleting(true)
+    try {
+      await apiClient.instance.delete(`/admin/nassa2ih/guides/${guideToDelete.id}`)
+      toast.success('Guide supprimé avec succès')
+      setIsDeleteDialogOpen(false)
+      fetchInitialData()
+    } catch (error) {
+      toast.error('Erreur lors de la suppression')
+    } finally {
+      setIsDeleting(false)
+      setGuideToDelete(null)
+    }
+  }
+
   const handleCreate = () => {
     setEditingGuide({
       title: '',
@@ -186,17 +231,8 @@ export function Nassa2ihManagement() {
       required_documents_list: [],
       steps: []
     })
+    setActiveTab('general')
     setIsDialogOpen(true)
-  }
-
-  const handleEdit = async (guide: Guide) => {
-    try {
-      const res = await apiClient.instance.get(`/admin/nassa2ih/guides/${guide.id}`)
-      setEditingGuide(res.data.data)
-      setIsDialogOpen(true)
-    } catch (error) {
-      toast.error('Erreur lors du chargement du guide')
-    }
   }
 
   const handleSave = async () => {
@@ -223,14 +259,14 @@ export function Nassa2ihManagement() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce guide ?')) return
+  const handleEdit = async (guide: Guide) => {
     try {
-      await apiClient.instance.delete(`/admin/nassa2ih/guides/${id}`)
-      toast.success('Guide supprimé')
-      fetchInitialData()
+      const res = await apiClient.instance.get(`/admin/nassa2ih/guides/${guide.id}`)
+      setEditingGuide(res.data.data)
+      setActiveTab('general')
+      setIsDialogOpen(true)
     } catch (error) {
-      toast.error('Erreur lors de la suppression')
+      toast.error('Erreur lors du chargement du guide')
     }
   }
 
@@ -272,7 +308,7 @@ export function Nassa2ihManagement() {
         <div className='space-y-6'>
           <div className='flex items-center justify-between'>
             <div>
-              <h1 className='text-3xl font-bold tracking-tight text-purple-900'>Nassa2ih - Guides</h1>
+              <h1 className='text-3xl font-bold tracking-tight text-black'>Nassa2ih - Guides</h1>
               <p className='text-muted-foreground mt-2'>
                 Système de gestion des procédures administratives et juridiques.
               </p>
@@ -411,8 +447,12 @@ export function Nassa2ihManagement() {
                     </TableRow>
                   ) : (
                     guides.map((guide) => (
-                      <TableRow key={guide.id} className='hover:bg-violet-50/30 transition-colors group border-b border-slate-50'>
-                        <TableCell className='font-medium py-4'>{guide.title}</TableCell>
+                      <TableRow 
+                        key={guide.id} 
+                        className='hover:bg-violet-50/30 transition-colors cursor-pointer group border-b border-slate-50'
+                        onClick={() => handleViewDetails(guide)}
+                      >
+                        <TableCell className='font-medium py-4 group-hover:text-violet-600 transition-colors'>{guide.title}</TableCell>
                         <TableCell>
                           <Badge variant='secondary' className='bg-violet-50 text-violet-700 hover:bg-violet-100 border-none transition-colors'>
                             {guide.category?.name_fr || 'N/A'}
@@ -437,7 +477,7 @@ export function Nassa2ihManagement() {
                         <TableCell className='text-slate-500 text-sm'>
                           {new Date(guide.updated_at).toLocaleDateString('fr-FR')}
                         </TableCell>
-                        <TableCell className='text-right py-4 px-6'>
+                        <TableCell className='text-right py-4 px-6' onClick={(e) => e.stopPropagation()}>
                           <div className='flex items-center justify-end gap-2'>
                             <Button size='icon' variant='ghost' className='h-9 w-9 text-violet-600 hover:bg-violet-100 hover:text-violet-700 rounded-full' onClick={() => handleEdit(guide)}>
                               <Edit className='h-4 w-4' />
@@ -446,7 +486,7 @@ export function Nassa2ihManagement() {
                               size='icon'
                               variant='ghost'
                               className='h-9 w-9 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-full'
-                              onClick={() => handleDelete(guide.id)}
+                              onClick={() => handleOpenDelete(guide)}
                             >
                               <Trash2 className='h-4 w-4' />
                             </Button>
@@ -475,7 +515,7 @@ export function Nassa2ihManagement() {
             </DialogHeader>
           </div>
 
-          <Tabs defaultValue='general' className='flex-1 flex flex-col min-h-0'>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className='flex-1 flex flex-col min-h-0'>
             <div className='px-6 border-b bg-white pt-2'>
               <TabsList className='flex w-full justify-start gap-8 bg-transparent p-0 h-auto rounded-none'>
                 <TabsTrigger 
@@ -828,18 +868,207 @@ export function Nassa2ihManagement() {
           </Tabs>
 
             <DialogFooter className='p-6 border-t bg-slate-50 gap-3'>
-              <Button variant='outline' onClick={() => setIsDialogOpen(false)} className='rounded-full border-slate-300 px-6' disabled={isSaving}>
-                Annuler
+              <Button 
+                variant='outline' 
+                onClick={() => {
+                  if (activeTab === 'general') {
+                    setIsDialogOpen(false)
+                  } else {
+                    const steps = ['general', 'procedure', 'documents'];
+                    setActiveTab(steps[steps.indexOf(activeTab) - 1]);
+                  }
+                }} 
+                className='rounded-full border-slate-300 px-6' 
+                disabled={isSaving}
+              >
+                {activeTab === 'general' ? 'Annuler' : 'Précédent'}
               </Button>
-              <Button disabled={isSaving} onClick={handleSave} className='bg-violet-600 hover:bg-violet-700 shadow-md rounded-full px-8'>
+              <Button 
+                disabled={isSaving} 
+                onClick={() => {
+                  if (activeTab === 'general' && (!editingGuide?.title || !editingGuide?.category_id)) {
+                    toast.error('Le titre et la catégorie sont obligatoires');
+                    return;
+                  }
+                  if (activeTab !== 'documents') {
+                    const steps = ['general', 'procedure', 'documents'];
+                    setActiveTab(steps[steps.indexOf(activeTab) + 1]);
+                  } else {
+                    handleSave();
+                  }
+                }} 
+                className='bg-violet-600 hover:bg-violet-700 shadow-md rounded-full px-8'
+              >
                 {isSaving ? (
                   <>
                     <div className='h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2'></div>
                     Enregistrement...
                   </>
                 ) : (
-                  'Enregistrer le guide'
+                  activeTab === 'documents' ? (editingGuide?.id ? 'Mettre à jour' : 'Créer le guide') : 'Suivant'
                 )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* View Details Dialog - Simplified & Clean */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className='max-w-3xl max-h-[85vh] flex flex-col p-0 overflow-hidden border-none shadow-xl rounded-2xl'>
+            <div className='p-6 border-b bg-white flex items-center justify-between'>
+              <div className='space-y-1'>
+                <div className='flex items-center gap-2'>
+                  <Badge variant='secondary' className='bg-violet-50 text-violet-600 rounded-md text-[10px] font-bold px-2 py-0'>
+                    {categories.find(c => c.id === viewingGuide?.category_id)?.name_fr || 'Guide'}
+                  </Badge>
+                  <Badge variant='outline' className='rounded-md text-[10px] font-bold px-2 py-0'>
+                    {viewingGuide?.difficulty}
+                  </Badge>
+                </div>
+                <DialogTitle className='text-2xl font-bold tracking-tight text-slate-900'>
+                  {viewingGuide?.title}
+                </DialogTitle>
+              </div>
+              <Button 
+                variant='outline' 
+                size='sm' 
+                onClick={() => {
+                  setIsViewDialogOpen(false)
+                  if (viewingGuide) handleEdit(viewingGuide)
+                }}
+                className='rounded-full gap-2 border-slate-200'
+              >
+                <Edit className='h-4 w-4' /> Modifier
+              </Button>
+            </div>
+
+            <div className='flex-1 overflow-y-auto p-6 space-y-8 bg-slate-50/20'>
+              <div className='space-y-4'>
+                <p className='text-slate-600 leading-relaxed'>
+                  {viewingGuide?.description}
+                </p>
+                <div className='grid grid-cols-2 sm:grid-cols-3 gap-4 border-y border-slate-100 py-4'>
+                  <div className='space-y-1'>
+                    <span className='text-[10px] font-bold text-slate-400 uppercase'>Temps estimé</span>
+                    <p className='text-sm font-semibold flex items-center gap-2 text-slate-700'><Clock className='w-3.5 h-3.5' /> {viewingGuide?.estimated_time || 'N/A'}</p>
+                  </div>
+                  <div className='space-y-1'>
+                    <span className='text-[10px] font-bold text-slate-400 uppercase'>Public cible</span>
+                    <p className='text-sm font-semibold flex items-center gap-2 text-slate-700'><Users className='w-3.5 h-3.5' /> {viewingGuide?.target_audience || 'Tout public'}</p>
+                  </div>
+                  <div className='space-y-1'>
+                    <span className='text-[10px] font-bold text-slate-400 uppercase'>Procédures</span>
+                    <p className='text-sm font-semibold flex items-center gap-2 text-slate-700'><Layers className='w-3.5 h-3.5' /> {viewingGuide?.steps_count || 0} étapes</p>
+                  </div>
+                </div>
+              </div>
+
+              {isLoadingDetails ? (
+                <div className='flex flex-col items-center justify-center py-12 gap-4'>
+                  <div className='h-8 w-8 animate-spin rounded-full border-2 border-violet-600 border-t-transparent'></div>
+                  <p className='text-sm font-medium text-slate-400'>Chargement des étapes...</p>
+                </div>
+              ) : (
+                <div className='space-y-8'>
+                  {/* Steps */}
+                  {viewingGuide?.steps && viewingGuide.steps.length > 0 && (
+                    <div className='space-y-4'>
+                      <h4 className='text-sm font-bold text-slate-900 flex items-center gap-2'><LayoutList className='w-4 h-4' /> Étapes à suivre</h4>
+                      <div className='space-y-3'>
+                        {viewingGuide.steps.sort((a,b) => a.order_index - b.order_index).map((step, i) => (
+                          <div key={i} className='bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-2'>
+                            <div className='flex items-start gap-3'>
+                              <div className='bg-slate-900 text-white w-6 h-6 rounded-md flex items-center justify-center shrink-0 text-xs font-black'>
+                                {i + 1}
+                              </div>
+                              <div className='space-y-1'>
+                                <h5 className='font-bold text-slate-800'>{step.title}</h5>
+                                <p className='text-sm text-slate-500 leading-relaxed'>{step.description}</p>
+                              </div>
+                            </div>
+                            {(step.required_documents || step.external_link) && (
+                              <div className='flex gap-4 pt-1 ml-9'>
+                                {step.required_documents && (
+                                  <span className='text-[11px] font-medium text-violet-600 bg-violet-50 px-2 py-0.5 rounded flex items-center gap-1'>
+                                    <Paperclip className='w-3 h-3' /> {step.required_documents}
+                                  </span>
+                                )}
+                                {step.external_link && (
+                                  <a href={step.external_link} target='_blank' rel='noopener' className='text-[11px] font-bold text-slate-400 hover:text-slate-900 transition-colors flex items-center gap-1'>
+                                    <ExternalLink className='w-3 h-3' /> Lien externe
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Required Documents */}
+                  {viewingGuide?.required_documents_list && viewingGuide.required_documents_list.length > 0 && (
+                    <div className='space-y-4'>
+                      <h4 className='text-sm font-bold text-slate-900 flex items-center gap-2'><ShieldCheck className='w-4 h-4' /> Documents requis</h4>
+                      <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                        {viewingGuide.required_documents_list.map((doc, i) => (
+                          <div key={i} className='bg-white p-3 rounded-xl border border-slate-100 flex items-center justify-between'>
+                            <div className='flex items-center gap-3'>
+                              <div className={`p-1.5 rounded ${doc.is_mandatory ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-400'}`}>
+                                <Paperclip className='w-3.5 h-3.5' />
+                              </div>
+                              <div className='leading-tight'>
+                                <p className='text-sm font-bold text-slate-700'>{doc.name}</p>
+                                <p className='text-[10px] text-slate-400'>{doc.description || 'Global'}</p>
+                              </div>
+                            </div>
+                            {doc.is_mandatory && <Badge className='bg-red-50 text-red-600 border-none text-[8px] font-black uppercase'>Mandat</Badge>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className='p-4 border-t bg-white flex justify-end'>
+               <Button onClick={() => setIsViewDialogOpen(false)} className='rounded-full px-8'>Fermer</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent className='sm:max-w-[400px] p-6 border-none shadow-2xl rounded-2xl'>
+            <div className='flex flex-col items-center text-center space-y-4'>
+              <div className='w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center'>
+                <AlertCircle className='w-8 h-8 text-rose-500' />
+              </div>
+              <div className='space-y-1.5'>
+                <DialogTitle className='text-xl font-bold text-slate-900'>Confirmation de suppression</DialogTitle>
+                <p className='text-slate-500 text-sm leading-relaxed'>
+                   Êtes-vous sûr de vouloir supprimer ce guide ? <br/>
+                   <span className='font-bold text-slate-700 mt-2 block'>"{guideToDelete?.title}"</span>
+                </p>
+              </div>
+            </div>
+            <DialogFooter className='mt-6 gap-3 sm:gap-0'>
+              <Button variant='ghost' onClick={() => setIsDeleteDialogOpen(false)} className='rounded-full flex-1' disabled={isDeleting}>
+                Annuler
+              </Button>
+              <Button 
+                variant='destructive' 
+                onClick={handleConfirmDelete} 
+                className='rounded-full flex-1 gap-2'
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <div className='h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white' />
+                ) : (
+                  <Trash2 className='h-4 w-4' />
+                )}
+                Supprimer
               </Button>
             </DialogFooter>
           </DialogContent>

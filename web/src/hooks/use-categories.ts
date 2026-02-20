@@ -211,3 +211,73 @@ export function useToggleGuideCategoryStatus() {
     },
   })
 }
+
+export function useNutritionCategories() {
+  return useQuery({
+    queryKey: ['nutrition-categories'],
+    queryFn: () => categoriesService.getNutritionCategories(),
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+export function useCreateNutritionCategory() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (category: Omit<Category, 'id' | 'created_at' | 'updated_at'>) =>
+      categoriesService.createNutritionCategory(category),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nutrition-categories'] })
+      toast.success('Catégorie ajoutée avec succès')
+    },
+    onError: (error: any) => {
+      console.error('Error creating nutrition category:', error)
+      toast.error(error?.message || 'Erreur lors de l\'ajout de la catégorie')
+    },
+  })
+}
+
+export function useUpdateNutritionCategory() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, category }: { id: string; category: Partial<Category> }) =>
+      categoriesService.updateNutritionCategory(id, category),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nutrition-categories'] })
+      toast.success('Catégorie mise à jour')
+    },
+    onError: () => {
+      toast.error('Erreur lors de la mise à jour')
+    },
+  })
+}
+
+export function useDeleteNutritionCategory() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => categoriesService.deleteNutritionCategory(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nutrition-categories'] })
+      toast.success('Catégorie supprimée')
+    },
+    onError: (error: any) => {
+      console.error('Error deleting nutrition category:', error)
+      toast.error(error?.message || 'Erreur lors de la suppression')
+    },
+  })
+}
+
+export function useToggleNutritionCategoryStatus() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, is_active }: { id: string; is_active: boolean }) =>
+      categoriesService.toggleNutritionCategoryStatus(id, is_active),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nutrition-categories'] })
+      toast.success('Statut mis à jour')
+    },
+    onError: (error: any) => {
+      console.error('Error toggling nutrition category status:', error)
+      toast.error(error?.message || 'Erreur lors de la mise à jour du statut')
+    },
+  })
+}

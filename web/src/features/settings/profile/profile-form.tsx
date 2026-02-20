@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge'
 import { Lock, Edit2, Trash2, Mail, Phone, MapPin } from 'lucide-react'
 import { toast } from 'sonner'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
@@ -52,14 +53,22 @@ export function ProfileForm() {
       const { data: { user: authUser } } = await supabase.auth.getUser()
       
       if (authUser) {
+        // Fetch full profile from DB instead of relying on metadata
+        const { data: dbUser } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', authUser.id)
+          .single()
+
+        const finalUser = dbUser || authUser
         setUser({
-          id: authUser.id,
-          email: authUser.email || '',
-          full_name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Admin',
-          phone: authUser.user_metadata?.phone || null,
-          wilaya: authUser.user_metadata?.wilaya || 'Algiers',
-          commune: authUser.user_metadata?.commune || 'Algiers',
-          avatar_url: authUser.user_metadata?.avatar_url || null,
+          id: finalUser.id,
+          email: finalUser.email || '',
+          full_name: finalUser.full_name || authUser.user_metadata?.full_name || 'Admin',
+          phone: finalUser.phone || authUser.user_metadata?.phone || null,
+          wilaya: finalUser.wilaya || authUser.user_metadata?.wilaya || 'Algiers',
+          commune: finalUser.commune || authUser.user_metadata?.commune || 'Algiers',
+          avatar_url: finalUser.avatar_url || finalUser.avatarUrl || authUser.user_metadata?.avatar_url || null,
         })
       } else {
         // Fallback: use default admin data
@@ -213,17 +222,12 @@ export function ProfileForm() {
           <div className='flex flex-col md:flex-row gap-8  md:items-center'>
             {/* Avatar */}
             <div className='flex flex-col items-center gap-4'>
-              {user.avatar_url ? (
-                <img
-                  src={user.avatar_url}
-                  alt={user.full_name}
-                  className='h-32 w-32 rounded-full object-cover border-4 border-primary'
-                />
-              ) : (
-                <div className='h-32 w-32 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-4 border-primary'>
-                  <span className='text-4xl font-bold text-white'>{getInitials(user.full_name)}</span>
-                </div>
-              )}
+              <Avatar className='h-32 w-32 border-4 border-primary shadow-xl'>
+                <AvatarImage src={user.avatar_url || ''} alt={user.full_name} className='object-cover' />
+                <AvatarFallback className='bg-gradient-to-br from-blue-400 to-blue-600 text-white text-4xl font-bold'>
+                  {getInitials(user.full_name)}
+                </AvatarFallback>
+              </Avatar>
               <Badge className='bg-blue-500 hover:bg-blue-600'>Admin</Badge>
             </div>
 

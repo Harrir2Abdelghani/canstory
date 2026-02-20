@@ -13,6 +13,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { Lock, User, Eye, EyeOff, Upload } from 'lucide-react'
 import axios from 'axios'
+import { useAuthStore } from '@/stores/auth-store'
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@/components/ui/avatar'
 import {
   Select,
   SelectContent,
@@ -22,6 +28,7 @@ import {
 } from '@/components/ui/select'
 
 export function Settings() {
+  const { auth } = useAuthStore()
   const [user, setUser] = useState<any>(null)
   const [wilayas, setWilayas] = useState<any[]>([])
   const [communes, setCommunes] = useState<any[]>([])
@@ -56,23 +63,37 @@ export function Settings() {
         axios.get('/api/admin/wilayas', { withCredentials: true }),
       ])
 
-      setUser(userRes.data)
+      const userData = userRes.data.user || userRes.data
+      setUser(userData)
       const fetchedWilayas = wilayasRes.data || []
       setWilayas(fetchedWilayas)
-      setAvatarPreview(userRes.data.avatar_url)
+      
+      const permanentAvatar = userData.avatar_url || userData.avatarUrl || userData.avatar
+      setAvatarPreview(permanentAvatar || null)
+
+      // Ensure global AuthStore is also in sync
+      const { auth } = useAuthStore.getState()
+      auth.setUser({
+        accountNo: userData.id,
+        email: userData.email,
+        role: Array.isArray(userData.role) ? userData.role : [userData.role || ''],
+        exp: Date.now() + 24 * 60 * 60 * 1000,
+        fullName: userData.full_name ?? null,
+        avatarUrl: permanentAvatar ?? null,
+      })
 
       // Find wilaya ID if the data contains a name
-      const userWilaya = userRes.data.wilaya
+      const userWilaya = userData.wilaya
       const foundWilaya = fetchedWilayas.find(
         (w: any) => w.id === userWilaya || w.name === userWilaya
       )
       const wilayaId = foundWilaya ? foundWilaya.id : userWilaya
 
       setProfileData({
-        full_name: userRes.data.full_name || '',
-        phone: userRes.data.phone || '',
+        full_name: userData.full_name || '',
+        phone: userData.phone || '',
         wilaya: wilayaId,
-        commune: userRes.data.commune || '',
+        commune: userData.commune || '',
         avatar: null,
       })
 
@@ -84,7 +105,7 @@ export function Settings() {
         setCommunes(fetchedCommunes)
 
         // Find commune ID if the data contains a name
-        const userCommune = userRes.data.commune
+        const userCommune = userData.commune
         const foundCommune = fetchedCommunes.find(
           (c: any) => c.id === userCommune || c.name === userCommune
         )
@@ -141,28 +162,47 @@ export function Settings() {
 
     setIsSavingProfile(true)
     try {
-      const formData = new FormData()
-      formData.append('full_name', profileData.full_name)
-      formData.append('phone', profileData.phone || '')
-      formData.append('wilaya', profileData.wilaya || '')
-      formData.append('commune', profileData.commune || '')
-      if (profileData.avatar) {
-        formData.append('avatar', profileData.avatar)
+      const payload: any = {
+        full_name: profileData.full_name,
+        phone: profileData.phone || null,
+        wilaya: profileData.wilaya || null,
+        commune: profileData.commune || null,
       }
 
-      const response = await axios.patch(`/api/admin/users/${user.id}`, formData, {
+      if (profileData.avatar && avatarPreview) {
+        payload.avatar = {
+          data: avatarPreview,
+          name: profileData.avatar.name,
+          type: profileData.avatar.type,
+        }
+      }
+
+      const response = await axios.patch(`/api/admin/users/${user.id}`, payload, {
         withCredentials: true,
-        headers: { 'Content-Type': 'multipart/form-data' },
       })
 
-      setUser(response.data)
-      setAvatarPreview(response.data.avatar_url)
+      const updatedUser = response.data.data || response.data
+      const newAvatarUrl = updatedUser.avatar_url || updatedUser.avatarUrl
+      setUser(updatedUser)
+      setAvatarPreview(newAvatarUrl)
+
+      // Sync with global AuthStore to update Header and LocalStorage
+      const { auth } = useAuthStore.getState()
+      auth.setUser({
+        accountNo: updatedUser.id,
+        email: updatedUser.email,
+        role: Array.isArray(updatedUser.role) ? updatedUser.role : [updatedUser.role || ''],
+        exp: Date.now() + 24 * 60 * 60 * 1000,
+        fullName: updatedUser.full_name ?? null,
+        avatarUrl: updatedUser.avatar_url ?? null,
+      })
+
       setIsEditingProfile(false)
       setProfileData({ ...profileData, avatar: null })
       toast.success('Profil mis à jour avec succès')
     } catch (error: any) {
       console.error('Profile update error:', error)
-      toast.error(error.response?.data?.message || 'Erreur lors de la mise à jour du profil')
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Erreur lors de la mise à jour du profil')
     } finally {
       setIsSavingProfile(false)
     }
@@ -288,17 +328,16 @@ export function Settings() {
                     <div className='space-y-6'>
                       <div className='flex flex-col sm:flex-row sm:items-start gap-6'>
                         <div className='flex-shrink-0'>
-                          {avatarPreview ? (
-                            <img
-                              src={avatarPreview}
-                              alt='Avatar'
-                              className='h-24 w-24 rounded-full object-cover border-4 border-primary'
+                          <Avatar className='h-24 w-24 border-4 border-primary shadow-lg'>
+                            <AvatarImage 
+                              src={avatarPreview || auth.user?.avatarUrl || user?.avatar_url || ''} 
+                              alt={user?.full_name} 
+                              className='object-cover' 
                             />
-                          ) : (
-                            <div className='flex items-center justify-center h-24 w-24 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 text-white text-3xl font-bold'>
-                              {user?.full_name?.charAt(0)?.toUpperCase() || 'A'}
-                            </div>
-                          )}
+                            <AvatarFallback className='bg-gradient-to-br from-purple-500 to-blue-500 text-white text-3xl font-bold'>
+                              {(user?.full_name || auth.user?.fullName)?.charAt(0)?.toUpperCase() || 'A'}
+                            </AvatarFallback>
+                          </Avatar>
                         </div>
                         <div className='flex-1 w-full space-y-4'>
                           <div className='grid gap-2'>
@@ -338,17 +377,16 @@ export function Settings() {
                       <div className='flex flex-col sm:flex-row sm:items-start gap-6'>
                         <div className='flex-shrink-0'>
                           <div className='relative'>
-                            {avatarPreview ? (
-                              <img
-                                src={avatarPreview}
-                                alt='Avatar Preview'
-                                className='h-24 w-24 rounded-full object-cover border-4 border-primary'
+                            <Avatar className='h-24 w-24 border-4 border-primary shadow-lg'>
+                              <AvatarImage 
+                                src={avatarPreview || auth.user?.avatarUrl || user?.avatar_url || ''} 
+                                alt='Preview' 
+                                className='object-cover' 
                               />
-                            ) : (
-                              <div className='flex items-center justify-center h-24 w-24 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 text-white text-3xl font-bold'>
-                                {user?.full_name?.charAt(0)?.toUpperCase() || 'A'}
-                              </div>
-                            )}
+                              <AvatarFallback className='bg-gradient-to-br from-purple-500 to-blue-500 text-white text-3xl font-bold'>
+                                {(user?.full_name || auth.user?.fullName)?.charAt(0)?.toUpperCase() || 'A'}
+                              </AvatarFallback>
+                            </Avatar>
                             <label className='absolute bottom-0 right-0 bg-primary text-white rounded-full p-2 cursor-pointer hover:bg-primary/90 transition'>
                               <Upload size={16} />
                               <input
@@ -448,7 +486,8 @@ export function Settings() {
                           disabled={isSavingProfile}
                           onClick={() => {
                             setIsEditingProfile(false)
-                            setAvatarPreview(user?.avatar_url)
+                            const originalAvatar = user?.avatar_url || user?.avatarUrl
+                            setAvatarPreview(originalAvatar)
                             setProfileData({
                               full_name: user?.full_name || '',
                               phone: user?.phone || '',

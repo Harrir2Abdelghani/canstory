@@ -420,8 +420,10 @@ export function AboutManagement() {
                         onChange={(e) => handleImageChange(e, 'presentation')}
                         className='flex-1'
                       />
-                      {presentationForm.image && (
-                        <div className='relative w-24 h-24 rounded border overflow-hidden'>
+                      
+                    </div>
+                    {presentationForm.image && (
+                        <div className='relative w-32 h-24 mt-4 rounded border overflow-hidden'>
                           <img src={presentationForm.image} alt='Preview' className='w-full h-full object-cover' />
                           <button
                             onClick={() => setPresentationForm(prev => ({ ...prev, image: '' }))}
@@ -431,7 +433,6 @@ export function AboutManagement() {
                           </button>
                         </div>
                       )}
-                    </div>
                   </div>
                   <div className='flex justify-end pt-4'>
                     <Button onClick={handleSavePresentation} disabled={loading} className='gap-2'>

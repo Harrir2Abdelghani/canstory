@@ -416,9 +416,9 @@ export function DownloadReportDialog({ open, onOpenChange }: DownloadReportDialo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='sm:max-w-md' showCloseButton>
         <DialogHeader>
-          <DialogTitle>Download report</DialogTitle>
+          <DialogTitle>Télécharger le rapport</DialogTitle>
           <DialogDescription>
-            CSV downloads a file with entries and users. PDF now generates a ready-to-share report directly from the dashboard.
+            Le format CSV télécharge un fichier contenant les inscriptions et les utilisateurs. Le format PDF génère un rapport complet prêt à être partagé, directement depuis votre tableau de bord.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className='flex-col gap-2 sm:flex-row'>
@@ -429,7 +429,7 @@ export function DownloadReportDialog({ open, onOpenChange }: DownloadReportDialo
             onClick={() => handleExport('csv')}
           >
             <FileSpreadsheet className='mr-2 h-4 w-4' />
-            {loading === 'csv' ? 'Preparing…' : 'Download CSV'}
+            {loading === 'csv' ? 'Préparation…' : 'Télécharger CSV'}
           </Button>
           <Button
             className='flex-1'
@@ -437,7 +437,7 @@ export function DownloadReportDialog({ open, onOpenChange }: DownloadReportDialo
             onClick={() => handleExport('pdf')}
           >
             <FileText className='mr-2 h-4 w-4' />
-            {loading === 'pdf' ? 'Preparing…' : 'Download PDF'}
+            {loading === 'pdf' ? 'Préparation…' : 'Télécharger PDF'}
           </Button>
         </DialogFooter>
       </DialogContent>

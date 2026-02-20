@@ -23,7 +23,10 @@ import {
   Star,
   Calendar,
   TrendingUp,
-  MoreHorizontal
+  MoreHorizontal,
+  ImagePlus,
+  X,
+  Upload
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Header } from '@/components/layout/header'
@@ -148,25 +151,22 @@ export function I3lamManagement() {
     tags: [],
     scheduled_at: null,
     thumbnail: '',
+    featured_image: '',
     seo_slug: ''
   })
+  const [activeTab, setActiveTab] = useState('content')
 
   useEffect(() => {
-    fetchData()
+    fetchCategories()
+    fetchStats()
+  }, [])
+
+  useEffect(() => {
+    fetchArticles()
   }, [statusFilter, categoryFilter])
 
-  const fetchData = async () => {
-    setLoading(true)
-    try {
-      await Promise.all([fetchArticles(), fetchCategories(), fetchStats()])
-    } catch (error) {
-      console.error('Error fetching data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const fetchArticles = async () => {
+    setLoading(true)
     try {
       const params: any = {}
       if (statusFilter && statusFilter !== 'all') params.status = statusFilter
@@ -179,8 +179,11 @@ export function I3lamManagement() {
     } catch (error) {
       console.error('Fetch articles error:', error)
       toast.error('Erreur lors du chargement des articles')
+    } finally {
+      setLoading(false)
     }
   }
+
 
   const fetchCategories = async () => {
     try {
@@ -228,10 +231,12 @@ export function I3lamManagement() {
         tags: article.tags || [],
         scheduled_at: article.scheduled_at ? new Date(article.scheduled_at).toISOString().slice(0, 16) : null,
         thumbnail: article.thumbnail || '',
+        featured_image: article.featured_image || '',
         seo_slug: article.seo_slug || ''
       })
     } else {
       setEditingArticle(null)
+      setActiveTab('content')
       setFormData({
         title: '',
         content: '',
@@ -244,10 +249,51 @@ export function I3lamManagement() {
         tags: [],
         scheduled_at: null,
         thumbnail: '',
+        featured_image: '',
         seo_slug: ''
       })
     }
+    setImagePreview(getImageUrl(article?.featured_image || null))
+    setPendingImage(null)
     setIsDialogOpen(true)
+  }
+
+  const getImageUrl = (image: string | null) => {
+    if (!image) return null
+    if (typeof image === 'string' && image.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(image)
+        return parsed.data || null
+      } catch (e) {
+        return image
+      }
+    }
+    return image
+  }
+
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [pendingImage, setPendingImage] = useState<any>(null)
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('L\'image est trop volumineuse (max 5Mo)')
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64 = reader.result as string
+        setImagePreview(base64)
+        setPendingImage({
+          data: base64,
+          name: file.name,
+          type: file.type
+        })
+      }
+      reader.readAsDataURL(file)
+    }
   }
 
   const handleSave = async () => {
@@ -264,7 +310,13 @@ export function I3lamManagement() {
       
       const method = editingArticle ? 'put' : 'post'
       
-      await apiClient.instance[method](url, formData)
+      const payload = {
+        ...formData,
+        category_id: formData.category_id === 'none' ? null : formData.category_id,
+        featured_image: pendingImage || formData.featured_image
+      }
+      
+      await apiClient.instance[method](url, payload)
 
       toast.success(editingArticle ? 'Article mis à jour' : 'Article créé avec succès')
       setIsDialogOpen(false)
@@ -462,7 +514,12 @@ export function I3lamManagement() {
                       <SelectItem value="all">Toutes catégories</SelectItem>
                       {categories.map((cat) => (
                         <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name_fr}
+                          <div className="flex items-center gap-2">
+                            {cat.color && (
+                              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                            )}
+                            {cat.name_fr}
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -519,9 +576,7 @@ export function I3lamManagement() {
                     <TableHead>Titre</TableHead>
                     <TableHead>Catégorie</TableHead>
                     <TableHead>Statut</TableHead>
-                    <TableHead>Vues</TableHead>
                     <TableHead>Date</TableHead>
-                    <TableHead>Modifié</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -548,12 +603,27 @@ export function I3lamManagement() {
                           />
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-2">
-                            {article.is_featured && (
-                              <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
-                            )}
+                          <div className="flex items-center gap-3">
+                            <div className="h-12 w-16 rounded overflow-hidden bg-muted flex-shrink-0 border border-muted-foreground/10">
+                              {getImageUrl(article.featured_image) ? (
+                                <img 
+                                  src={getImageUrl(article.featured_image)!} 
+                                  alt="" 
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center bg-muted-foreground/5 text-muted-foreground/30">
+                                  <ImagePlus className="h-4 w-4" />
+                                </div>
+                              )}
+                            </div>
                             <div>
-                              <div className="font-medium max-w-md truncate">{article.title}</div>
+                              <div className="flex items-center gap-2">
+                                {article.is_featured && (
+                                  <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                                )}
+                                <div className="font-medium max-w-md truncate">{article.title}</div>
+                              </div>
                               {article.read_time_minutes && (
                                 <div className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                                   <Clock className="h-3 w-3" />
@@ -575,12 +645,8 @@ export function I3lamManagement() {
                         <TableCell>
                           <StatusBadge status={article.article_status} />
                         </TableCell>
-                        <TableCell>{article.views_count.toLocaleString()}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {formatDate(article.created_at)}
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {formatDate(article.updated_at)}
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
@@ -642,9 +708,9 @@ export function I3lamManagement() {
                     </Badge>
                   )}
                 </div>
-                {viewArticle.featured_image && (
+                {getImageUrl(viewArticle.featured_image) && (
                   <img
-                    src={viewArticle.featured_image}
+                    src={getImageUrl(viewArticle.featured_image)!}
                     alt={viewArticle.title}
                     className="w-full rounded-lg"
                   />
@@ -694,32 +760,34 @@ export function I3lamManagement() {
               </DialogDescription>
             </DialogHeader>
 
-            <Tabs defaultValue="content" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="content">Contenu</TabsTrigger>
-                <TabsTrigger value="settings">Paramètres & SEO</TabsTrigger>
-                <TabsTrigger value="scheduling">Planification</TabsTrigger>
+            <Tabs value={activeTab} onValueChange={setActiveTab as any} className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="content">1. Contenu</TabsTrigger>
+                <TabsTrigger value="settings">2. Paramètres & SEO</TabsTrigger>
               </TabsList>
 
               <TabsContent value="content" className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Titre de l'article</Label>
-                  <Input
-                    id="title"
-                    placeholder="Entrez le titre..."
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="excerpt">Extrait (Brève description)</Label>
-                  <Textarea
-                    id="excerpt"
-                    placeholder="Un court résumé pour les listes..."
-                    value={formData.excerpt || ''}
-                    onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
-                    rows={3}
-                  />
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Titre de l'article</Label>
+                    <Input
+                      id="title"
+                      placeholder="Entrez le titre..."
+                      className="text-xl font-semibold h-12"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="excerpt">Extrait (Brève description)</Label>
+                    <Textarea
+                      id="excerpt"
+                      placeholder="Un court résumé pour les listes..."
+                      className="h-[100px] resize-none"
+                      value={formData.excerpt || ''}
+                      onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -735,137 +803,210 @@ export function I3lamManagement() {
                   />
                 </div>
               </TabsContent>
-
               <TabsContent value="settings" className="space-y-4 pt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="category-select">Catégorie</Label>
-                    <Select 
-                      value={formData.category_id || ''} 
-                      onValueChange={(val) => setFormData({ ...formData, category_id: val })}
-                    >
-                      <SelectTrigger id="category-select">
-                        <SelectValue placeholder="Choisir une catégorie" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.name_fr}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="status-select">Statut workflow</Label>
-                    <Select 
-                      value={formData.article_status} 
-                      onValueChange={(val: any) => setFormData({ ...formData, article_status: val })}
-                    >
-                      <SelectTrigger id="status-select">
-                        <SelectValue placeholder="Statut" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="brouillon">Brouillon</SelectItem>
-                        <SelectItem value="en_revision">En révision</SelectItem>
-                        <SelectItem value="planifie">Planifié</SelectItem>
-                        <SelectItem value="publie">Publié</SelectItem>
-                        <SelectItem value="archive">Archivé</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <div className="space-y-3">
+                      <Label>Image de couverture</Label>
+                      <div 
+                        className={`border-2 border-dashed rounded-xl p-4 transition-all ${
+                          imagePreview ? 'border-primary/50 bg-primary/5' : 'border-muted-foreground/20 hover:border-primary/50'
+                        }`}
+                      >
+                        {imagePreview ? (
+                          <div className="relative aspect-video rounded-lg overflow-hidden group">
+                            <img src={imagePreview} alt="Couverture" className="w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                              <Button 
+                                variant="secondary" 
+                                size="sm" 
+                                onClick={() => document.getElementById('image-upload')?.click()}
+                              >
+                                <Upload className="h-4 w-4 mr-2" /> Changer
+                              </Button>
+                              <Button 
+                                variant="destructive" 
+                                size="sm" 
+                                onClick={() => {
+                                  setImagePreview(null)
+                                  setPendingImage(null)
+                                  setFormData({ ...formData, featured_image: '' })
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div 
+                            className="flex flex-col items-center justify-center py-8 cursor-pointer"
+                            onClick={() => document.getElementById('image-upload')?.click()}
+                          >
+                            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                              <ImagePlus className="h-6 w-6 text-primary" />
+                            </div>
+                            <p className="text-sm font-medium">Cliquez pour uploader</p>
+                            <p className="text-xs text-muted-foreground mt-1">PNG, JPG jusqu'à 5Mo</p>
+                          </div>
+                        )}
+                        <input 
+                          type="file" 
+                          id="image-upload" 
+                          className="hidden" 
+                          accept="image/*"
+                          onChange={handleImageChange}
+                        />
+                      </div>
+                    </div>
 
-                <div className="flex items-center space-x-2 pt-2">
-                  <Switch
-                    id="featured-switch"
-                    checked={formData.is_featured}
-                    onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
-                  />
-                  <Label htmlFor="featured-switch" className="flex items-center gap-2 cursor-pointer">
-                    <Star className={`h-4 w-4 ${formData.is_featured ? 'fill-yellow-500 text-yellow-500' : ''}`} />
-                    Mettre en avant sur la page d'accueil
-                  </Label>
-                </div>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="category-select">Catégorie</Label>
+                        <Select 
+                          value={formData.category_id || ''} 
+                          onValueChange={(val) => setFormData({ ...formData, category_id: val })}
+                        >
+                          <SelectTrigger id="category-select">
+                            <SelectValue placeholder="Choisir une catégorie" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Aucune catégorie</SelectItem>
+                            {categories.map((cat) => (
+                              <SelectItem key={cat.id} value={cat.id}>
+                                <div className="flex items-center gap-2">
+                                  {cat.color && (
+                                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                                  )}
+                                  {cat.name_fr}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="status-select">Statut workflow</Label>
+                        <Select 
+                          value={formData.article_status} 
+                          onValueChange={(val: any) => setFormData({ ...formData, article_status: val })}
+                        >
+                          <SelectTrigger id="status-select" className="bg-primary/5 border-primary/20">
+                            <SelectValue placeholder="Statut" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="brouillon">Brouillon</SelectItem>
+                            <SelectItem value="en_revision">En révision</SelectItem>
+                            <SelectItem value="planifie">Planifié</SelectItem>
+                            <SelectItem value="publie">Publié</SelectItem>
+                            <SelectItem value="archive">Archivé</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
 
-                <div className="space-y-2 pt-4">
-                  <Label htmlFor="thumbnail-url">Image miniature (URL)</Label>
-                  <Input
-                    id="thumbnail-url"
-                    placeholder="https://..."
-                    value={formData.thumbnail || ''}
-                    onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
-                  />
-                </div>
+                    <div className="flex items-center space-x-2 bg-muted/50 p-3 rounded-lg border border-muted-foreground/10">
+                      <Switch
+                        id="featured-switch"
+                        checked={formData.is_featured}
+                        onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
+                      />
+                      <Label htmlFor="featured-switch" className="flex items-center gap-2 cursor-pointer font-medium">
+                        <Star className={`h-4 w-4 ${formData.is_featured ? 'fill-yellow-500 text-yellow-500' : ''}`} />
+                        Mettre en avant sur la page d'accueil
+                      </Label>
+                    </div>
+                  </div>
 
-                <div className="border-t pt-4 space-y-4">
-                  <h3 className="font-semibold text-sm flex items-center gap-2">
-                    <TrendingUp className="h-4 w-4" /> Optimisation SEO
-                  </h3>
-                  <div className="space-y-2">
-                    <Label htmlFor="seo-slug-input">URL personnalisée (Slug)</Label>
-                    <Input
-                      id="seo-slug-input"
-                      placeholder="mon-titre-article"
-                      value={formData.seo_slug || ''}
-                      onChange={(e) => setFormData({ ...formData, seo_slug: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="meta-title-input">Meta Title</Label>
-                    <Input
-                      id="meta-title-input"
-                      placeholder="Titre pour Google..."
-                      value={formData.meta_title || ''}
-                      onChange={(e) => setFormData({ ...formData, meta_title: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="meta-desc-input">Meta Description</Label>
-                    <Textarea
-                      id="meta-desc-input"
-                      placeholder="Description pour les résultats de recherche..."
-                      value={formData.meta_description || ''}
-                      onChange={(e) => setFormData({ ...formData, meta_description: e.target.value })}
-                    />
+                  <div className="space-y-6">
+                    <div className="bg-primary/5 p-4 rounded-xl space-y-4 border border-primary/10">
+                      <h3 className="font-semibold text-sm flex items-center gap-2 text-primary">
+                        <TrendingUp className="h-4 w-4" /> Optimisation SEO
+                      </h3>
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label htmlFor="seo-slug-input">URL personnalisée (Slug)</Label>
+                          <Input
+                            id="seo-slug-input"
+                            placeholder="mon-titre-article"
+                            className="bg-background border-muted-foreground/20"
+                            value={formData.seo_slug || ''}
+                            onChange={(e) => setFormData({ ...formData, seo_slug: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="meta-title-input">Meta Title</Label>
+                          <Input
+                            id="meta-title-input"
+                            placeholder="Titre pour Google..."
+                            className="bg-background border-muted-foreground/20"
+                            value={formData.meta_title || ''}
+                            onChange={(e) => setFormData({ ...formData, meta_title: e.target.value })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="meta-desc-input">Meta Description</Label>
+                          <Textarea
+                            id="meta-desc-input"
+                            placeholder="Description pour les résultats de recherche..."
+                            className="bg-background border-muted-foreground/20 h-24"
+                            value={formData.meta_description || ''}
+                            onChange={(e) => setFormData({ ...formData, meta_description: e.target.value })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {formData.article_status === 'planifie' && (
+                      <div className="space-y-2 p-4 bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800 rounded-xl">
+                        <Label htmlFor="scheduled-at-input" className="text-purple-700 dark:text-purple-300">Date de planification</Label>
+                        <Input
+                          id="scheduled-at-input"
+                          type="datetime-local"
+                          className="bg-background"
+                          value={formData.scheduled_at || ''}
+                          onChange={(e) => setFormData({ ...formData, scheduled_at: e.target.value })}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
-              </TabsContent>
-
-              <TabsContent value="scheduling" className="space-y-4 pt-4">
-                <div className="bg-muted p-4 rounded-lg flex items-start gap-3">
-                  <Calendar className="h-5 w-5 text-purple-600 mt-0.5" />
-                  <div>
-                    <h4 className="font-medium">Planification de publication</h4>
-                    <p className="text-sm text-muted-foreground">
-                      L'article sera automatiquement publié à la date et l'heure sélectionnées si le statut est défini sur "Planifié".
-                    </p>
-                  </div>
-                </div>
-                <div className="space-y-2 max-w-xs">
-                  <Label htmlFor="scheduled-at-input">Date et heure de publication</Label>
-                  <Input
-                    id="scheduled-at-input"
-                    type="datetime-local"
-                    value={formData.scheduled_at || ''}
-                    onChange={(e) => setFormData({ ...formData, scheduled_at: e.target.value })}
-                  />
-                </div>
-                {formData.article_status !== 'planifie' && formData.scheduled_at && (
-                  <p className="text-sm text-yellow-600 font-medium">
-                    ⚠️ Note: N'oubliez pas de changer le statut en "Planifié" pour activer la publication automatique.
-                  </p>
-                )}
               </TabsContent>
             </Tabs>
 
-            <DialogFooter className="pt-4">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>
-                Annuler
-              </Button>
-              <Button onClick={handleSave} disabled={isSubmitting}>
-                {isSubmitting ? 'Enregistrement...' : editingArticle ? 'Mettre à jour' : 'Créer l\'article'}
-              </Button>
+            <DialogFooter className="pt-4 flex justify-between items-center bg-muted/30 -mx-6 -mb-6 p-6 mt-4 border-t">
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>
+                  Annuler
+                </Button>
+                {activeTab !== 'content' && (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setActiveTab('content')}
+                  >
+                    Précédent
+                  </Button>
+                )}
+              </div>
+              
+              <div className="flex gap-2">
+                {activeTab === 'content' ? (
+                  <Button 
+                    onClick={() => {
+                      if (!formData.title?.trim() || !formData.content?.trim()) {
+                        toast.error('Le titre et le contenu sont obligatoires')
+                        return
+                      }
+                      setActiveTab('settings')
+                    }}
+                  >
+                    Suivant
+                  </Button>
+                ) : (
+                  <Button onClick={handleSave} disabled={isSubmitting} className="bg-primary hover:bg-primary/90 px-8">
+                    {isSubmitting ? 'Enregistrement...' : editingArticle ? 'Mettre à jour' : 'Créer l\'article'}
+                  </Button>
+                )}
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>

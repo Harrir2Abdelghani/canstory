@@ -41,37 +41,50 @@ export const Overview = memo(function Overview({ data }: OverviewProps) {
             <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
           </linearGradient>
         </defs>
-        <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-muted/30" />
+        <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} />
         <XAxis
           dataKey='name'
-          stroke='#888888'
-          fontSize={12}
+          stroke='#94a3b8'
+          fontSize={11}
+          fontWeight={600}
           tickLine={false}
           axisLine={false}
           dy={10}
         />
         <YAxis
-          stroke='#888888'
-          fontSize={12}
+          stroke='#94a3b8'
+          fontSize={11}
+          fontWeight={600}
           tickLine={false}
           axisLine={false}
-          tickFormatter={(value) => `${value}`}
         />
         <Tooltip
-          contentStyle={{
-            backgroundColor: 'hsl(var(--background))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '12px',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+          cursor={{ stroke: '#cbd5e1', strokeWidth: 1 }}
+          content={({ active, payload, label }) => {
+            if (active && payload && payload.length) {
+              return (
+                <div className="bg-white/90 dark:bg-card/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-2xl">
+                  <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 border-b pb-2">{label}</p>
+                  <div className="flex items-center justify-between gap-6">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-violet-600" />
+                      <span className="text-xs font-bold text-slate-600">Inscriptions</span>
+                    </div>
+                    <span className="text-xs font-black tabular-nums">
+                      {Number(payload[0].value).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              )
+            }
+            return null
           }}
-          itemStyle={{ color: '#8b5cf6', fontWeight: 'bold' }}
-          formatter={(value) => [`${value} nouveaux utilisateurs`, 'Inscriptions']}
         />
         <Area
           type="monotone"
           dataKey="signups"
           stroke="#8b5cf6"
-          strokeWidth={3}
+          strokeWidth={4}
           fillOpacity={1}
           fill="url(#colorSignups)"
           animationDuration={1500}

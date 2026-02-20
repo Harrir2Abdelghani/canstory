@@ -37,34 +37,48 @@ export const KhibratiChart = memo(function KhibratiChart({ data }: KhibratiChart
         data={chartData} 
         margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
       >
-        <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-muted/30" />
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.5} />
         <XAxis 
           dataKey="name" 
           axisLine={false} 
           tickLine={false}
-          fontSize={12}
-          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+          fontSize={11}
+          fontWeight={600}
+          tick={{ fill: '#94a3b8' }}
         />
         <YAxis 
           axisLine={false} 
           tickLine={false}
-          fontSize={12}
-          tick={{ fill: 'hsl(var(--muted-foreground))' }}
+          fontSize={11}
+          fontWeight={600}
+          tick={{ fill: '#94a3b8' }}
         />
         <Tooltip
-          cursor={{ fill: 'hsl(var(--muted))', opacity: 0.1 }}
-          contentStyle={{
-            backgroundColor: 'hsl(var(--background))',
-            border: '1px solid hsl(var(--border))',
-            borderRadius: '12px',
-            boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+          cursor={{ fill: '#f1f5f9', radius: 8 }}
+          content={({ active, payload, label }) => {
+            if (active && payload && payload.length) {
+              return (
+                <div className="bg-white/90 dark:bg-card/90 backdrop-blur-md border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-2xl">
+                   <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 border-b pb-2">{label}</p>
+                   <div className="flex items-center justify-between gap-6">
+                    <div className="flex items-center gap-2">
+                       <div className="w-2 h-2 rounded-full" style={{ backgroundColor: payload[0].payload.color }} />
+                       <span className="text-xs font-bold text-slate-600">Publications</span>
+                    </div>
+                    <span className="text-xs font-black tabular-nums">
+                      {payload[0].value}
+                    </span>
+                   </div>
+                </div>
+              )
+            }
+            return null
           }}
-          formatter={(value) => [`${value} publications`, 'Quantité']}
         />
         <Bar 
           dataKey="value" 
-          radius={[6, 6, 0, 0]} 
-          barSize={40}
+          radius={[8, 8, 4, 4]} 
+          barSize={50}
           animationDuration={1500}
         >
           {chartData.map((entry, index) => (

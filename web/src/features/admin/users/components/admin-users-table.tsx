@@ -1,5 +1,4 @@
 import { useMemo } from 'react'
-import { useNavigate } from '@tanstack/react-router'
 import {
   ColumnDef,
   flexRender,
@@ -20,6 +19,7 @@ import {
 import { cn } from '@/lib/utils'
 import { AdminUser } from '@/services/admin-users.service'
 import { AdminUserRowActions } from './admin-user-row-actions'
+import { useAdminUsersContext } from './admin-users-provider'
 
 interface AdminUsersTableProps {
   data: AdminUser[]
@@ -72,7 +72,7 @@ export function AdminUsersTable({
   onPageChange,
   isLoading,
 }: AdminUsersTableProps) {
-  const navigate = useNavigate()
+  const { setEditingUser, setDetailDialogOpen } = useAdminUsersContext()
 
   const columns = useMemo<ColumnDef<AdminUser>[]>(
     () => [
@@ -88,10 +88,7 @@ export function AdminUsersTable({
             .toUpperCase()
 
           return (
-            <button
-              onClick={() => navigate({ to: `/users/${user.id}` })}
-              className='flex items-center gap-3 hover:opacity-75 transition-opacity'
-            >
+            <div className='flex items-center gap-3'>
               <Avatar className='h-8 w-8'>
                 <AvatarImage src={user.avatar_url || ''} />
                 <AvatarFallback>{initials}</AvatarFallback>
@@ -100,7 +97,7 @@ export function AdminUsersTable({
                 <p className='font-medium'>{user.full_name}</p>
                 <p className='text-sm text-muted-foreground'>{user.email}</p>
               </div>
-            </button>
+            </div>
           )
         },
       },
@@ -146,7 +143,7 @@ export function AdminUsersTable({
         cell: ({ row }) => <AdminUserRowActions user={row.original} />,
       },
     ],
-    [navigate]
+    []
   )
 
   const table = useReactTable({
@@ -189,7 +186,14 @@ export function AdminUsersTable({
               </TableRow>
             ) : (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow 
+                  key={row.id}
+                  className='cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors'
+                  onClick={() => {
+                    setEditingUser(row.original)
+                    setDetailDialogOpen(true)
+                  }}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

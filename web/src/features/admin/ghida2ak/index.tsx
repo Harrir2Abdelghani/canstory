@@ -17,7 +17,11 @@ import {
   ChefHat,
   Calendar,
   UserCheck,
-  ShieldAlert
+  ShieldAlert,
+  Trash2,
+  Info,
+  Clock,
+  Salad
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Header } from '@/components/layout/header'
@@ -50,9 +54,16 @@ interface NutritionGuide {
   id: string
   title: string
   cancer_type: string
-  category: string
+  category_id?: string
+  category?: {
+    id: string
+    name_fr: string
+    name_ar: string
+    slug: string
+  }
   workflow_status: 'brouillon' | 'en_revision' | 'publie' | 'archive'
   overview: string
+  content: any
   recommended_foods: string[]
   foods_to_avoid: string[]
   nutritional_advice: string[]
@@ -77,13 +88,7 @@ const cancerTypes = [
   { value: 'other', label: 'Autre' },
 ]
 
-const categories = [
-  'Conseils généraux',
-  'Aliments recommandés',
-  'Aliments à éviter',
-  'Recettes',
-  'Suppléments',
-]
+// Categories will be fetched from the database
 
 const statusConfig = {
   brouillon: { label: 'Brouillon', color: 'bg-gray-100 text-gray-800', icon: FileText },
@@ -111,11 +116,18 @@ export function Ghida2akManagement() {
     total_recipes: 0,
     cancer_types_covered: 0
   })
+  const [nutritionCategories, setNutritionCategories] = useState<any[]>([])
 
   // Dialog states
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+  const [guideToDelete, setGuideToDelete] = useState<NutritionGuide | null>(null)
   const [editingGuide, setEditingGuide] = useState<Partial<NutritionGuide> | null>(null)
+  const [viewingGuide, setViewingGuide] = useState<NutritionGuide | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [activeTab, setActiveTab] = useState('general')
 
   useEffect(() => {
     fetchData()
@@ -124,12 +136,14 @@ export function Ghida2akManagement() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const [guidesRes, statsRes] = await Promise.all([
+      const [guidesRes, statsRes, categoriesRes] = await Promise.all([
         apiClient.instance.get('/admin/nutrition/guides'),
-        apiClient.instance.get('/admin/nutrition/stats')
+        apiClient.instance.get('/admin/nutrition/stats'),
+        apiClient.instance.get('/admin/nutrition/categories')
       ])
       setGuides(guidesRes.data.data || [])
       setStats(statsRes.data.data)
+      setNutritionCategories(categoriesRes.data.data || [])
     } catch (error) {
       toast.error('Erreur lors du chargement des données')
     } finally {
@@ -142,7 +156,7 @@ export function Ghida2akManagement() {
       const matchesSearch = guide.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           guide.overview?.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesCancer = cancerFilter === 'all' || guide.cancer_type === cancerFilter
-      const matchesCategory = categoryFilter === 'all' || guide.category === categoryFilter
+      const matchesCategory = categoryFilter === 'all' || guide.category_id === categoryFilter
       const matchesStatus = statusFilter === 'all' || guide.workflow_status === statusFilter
       
       return matchesSearch && matchesCancer && matchesCategory && matchesStatus
@@ -162,9 +176,10 @@ export function Ghida2akManagement() {
       setEditingGuide({
         title: '',
         cancer_type: 'other',
-        category: categories[0],
+        category_id: nutritionCategories[0]?.id || '',
         workflow_status: 'brouillon',
         overview: '',
+        content: {},
         recommended_foods: [],
         foods_to_avoid: [],
         nutritional_advice: [],
@@ -172,7 +187,18 @@ export function Ghida2akManagement() {
         recipes: []
       })
     }
+    setActiveTab('general')
     setIsDialogOpen(true)
+  }
+
+  const handleViewDetails = async (guide: NutritionGuide) => {
+    try {
+      const { data } = await apiClient.instance.get(`/admin/nutrition/guides/${guide.id}`)
+      setViewingGuide(data.data)
+      setIsViewDialogOpen(true)
+    } catch (error) {
+      toast.error('Erreur lors du chargement des détails')
+    }
   }
 
   const handleSave = async () => {
@@ -183,31 +209,40 @@ export function Ghida2akManagement() {
 
     setIsSaving(true)
     try {
+      // Remove joined objects before sending to API
+      const { category, author, ...payload } = editingGuide as any
+
       if (editingGuide.id) {
-        await apiClient.instance.put(`/admin/nutrition/guides/${editingGuide.id}`, editingGuide)
+        await apiClient.instance.put(`/admin/nutrition/guides/${editingGuide.id}`, payload)
         toast.success('Guide mis à jour')
       } else {
-        await apiClient.instance.post('/admin/nutrition/guides', editingGuide)
+        await apiClient.instance.post('/admin/nutrition/guides', payload)
         toast.success('Guide créé avec succès')
       }
       setIsDialogOpen(false)
       fetchData()
     } catch (error) {
+      console.error('Save error:', error)
       toast.error("Erreur lors de l'enregistrement")
     } finally {
       setIsSaving(false)
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce contenu ?')) return
+  const handleDelete = async () => {
+    if (!guideToDelete) return
     
+    setIsDeleting(true)
     try {
-      await apiClient.instance.delete(`/admin/nutrition/guides/${id}`)
-      toast.success('Contenu supprimé')
+      await apiClient.instance.delete(`/admin/nutrition/guides/${guideToDelete.id}`)
+      toast.success('Contenu supprimé avec succès')
+      setIsDeleteDialogOpen(false)
+      setGuideToDelete(null)
       fetchData()
     } catch (error) {
       toast.error('Erreur lors de la suppression')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -312,7 +347,7 @@ export function Ghida2akManagement() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value='all'>Toutes catégories</SelectItem>
-                      {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                      {nutritionCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name_fr}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -362,14 +397,18 @@ export function Ghida2akManagement() {
                       <TableRow><TableCell colSpan={6} className='text-center py-8 text-muted-foreground'>Aucun contenu trouvé</TableCell></TableRow>
                     ) : (
                       filteredGuides.map((item) => (
-                        <TableRow key={item.id} className='hover:bg-muted/50 transition-colors'>
+                        <TableRow 
+                          key={item.id} 
+                          className='hover:bg-muted/50 transition-colors cursor-pointer group'
+                          onClick={() => handleViewDetails(item)}
+                        >
                           <TableCell>
                             <Badge variant='outline' className='capitalize'>
                               {cancerTypes.find(t => t.value === item.cancer_type)?.label || item.cancer_type}
                             </Badge>
                           </TableCell>
-                          <TableCell className='font-medium'>{item.title}</TableCell>
-                          <TableCell>{item.category}</TableCell>
+                          <TableCell className='font-medium group-hover:text-primary transition-colors'>{item.title}</TableCell>
+                          <TableCell>{item.category?.name_fr || 'Sans catégorie'}</TableCell>
                           <TableCell>
                             <Badge className={`${statusConfig[item.workflow_status].color} border-none`}>
                               <div className='flex items-center gap-1'>
@@ -384,7 +423,7 @@ export function Ghida2akManagement() {
                           <TableCell className='text-muted-foreground'>
                             {new Date(item.updated_at).toLocaleDateString('fr-FR')}
                           </TableCell>
-                          <TableCell className='text-right'>
+                          <TableCell className='text-right' onClick={(e) => e.stopPropagation()}>
                             <div className='flex items-center justify-end gap-1'>
                               <Button size='icon' variant='ghost' onClick={() => handleOpenDialog(item)}>
                                 <Edit className='h-4 w-4' />
@@ -399,7 +438,13 @@ export function Ghida2akManagement() {
                                   <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'en_revision')}>Marquer En révision</DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'publie')}>Publier</DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleStatusChange(item.id, 'archive')}>Archiver</DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleDelete(item.id)} className='text-red-600 font-medium'>Supprimer</DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => {
+                                    setGuideToDelete(item)
+                                    setIsDeleteDialogOpen(true)
+                                  }} className='text-red-600 font-medium'>
+                                    <Trash2 className='h-4 w-4 mr-2' />
+                                    Supprimer
+                                  </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
@@ -414,6 +459,202 @@ export function Ghida2akManagement() {
           </Card>
         </div>
 
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent className='max-w-md'>
+            <DialogHeader>
+              <DialogTitle className='flex items-center gap-2 text-red-600'>
+                <ShieldAlert className='h-5 w-5' />
+                Confirmer la suppression
+              </DialogTitle>
+              <DialogDescription className='py-3'>
+                Êtes-vous sûr de vouloir supprimer le guide <span className='font-bold text-foreground'>"{guideToDelete?.title}"</span> ? 
+                Cette action est irréversible et supprimera également toutes les recettes associées.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className='gap-2 sm:gap-0 font-medium'>
+              <Button 
+                variant='ghost' 
+                onClick={() => setIsDeleteDialogOpen(false)}
+                disabled={isDeleting}
+              >
+                Annuler
+              </Button>
+              <Button 
+                variant='destructive' 
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className='gap-2'
+              >
+                {isDeleting ? (
+                   <div className='h-4 w-4 border-2 border-white/30 border-t-white animate-spin rounded-full' />
+                ) : (
+                  <Trash2 className='h-4 w-4' />
+                )}
+                Supprimer définitivement
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* View Details Dialog */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className='max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0'>
+            <DialogHeader className='p-6 bg-primary/5 border-b'>
+              <div className='flex items-center justify-between'>
+                <div className='space-y-1'>
+                  <div className='flex items-center gap-2'>
+                    <Badge variant='outline' className='bg-background uppercase text-[10px] font-bold tracking-wider'>
+                      {cancerTypes.find(t => t.value === viewingGuide?.cancer_type)?.label || viewingGuide?.cancer_type}
+                    </Badge>
+                    <Badge className={`${viewingGuide ? statusConfig[viewingGuide.workflow_status].color : ''} border-none text-[10px] font-bold uppercase tracking-wider`}>
+                      {viewingGuide ? statusConfig[viewingGuide.workflow_status].label : ''}
+                    </Badge>
+                  </div>
+                  <DialogTitle className='text-2xl font-bold tracking-tight'>{viewingGuide?.title}</DialogTitle>
+                </div>
+                <Button variant='outline' size='sm' className='gap-2' onClick={() => {
+                  setIsViewDialogOpen(false)
+                  if (viewingGuide) handleOpenDialog(viewingGuide as any)
+                }}>
+                  <Edit className='h-4 w-4' />
+                  Modifier
+                </Button>
+              </div>
+            </DialogHeader>
+
+            <div className='flex-1 overflow-y-auto p-8 space-y-8'>
+              {/* Introduction Section */}
+              <section className='space-y-3'>
+                <h3 className='text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+                  <Info className='h-4 w-4' />
+                  Aperçu & Introduction
+                </h3>
+                <div className='p-4 rounded-xl bg-muted/30 border text-foreground/90 italic leading-relaxed'>
+                  {viewingGuide?.overview}
+                </div>
+                <div className='text-foreground/80 leading-relaxed whitespace-pre-wrap'>
+                   {typeof viewingGuide?.content === 'string' ? viewingGuide.content : JSON.stringify(viewingGuide?.content)}
+                </div>
+              </section>
+
+              {/* Medical Info Grid */}
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                <Card className='bg-blue-50/30 border-blue-100 shadow-none'>
+                  <CardHeader className='pb-3'>
+                    <CardTitle className='text-sm flex items-center gap-2 text-blue-700'>
+                      <UserCheck className='h-4 w-4' />
+                      Validation Médicale
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className='space-y-2 text-sm'>
+                    <div className='flex justify-between'>
+                      <span className='text-muted-foreground'>Expert :</span>
+                      <span className='font-medium text-blue-900'>{viewingGuide?.validated_by || 'Non spécifié'}</span>
+                    </div>
+                    <div className='flex justify-between'>
+                      <span className='text-muted-foreground'>Dernière révision :</span>
+                      <span className='font-medium text-blue-900'>
+                        {viewingGuide?.last_reviewed_date ? new Date(viewingGuide.last_reviewed_date).toLocaleDateString() : 'En attente'}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className='bg-amber-50/30 border-amber-100 shadow-none'>
+                  <CardHeader className='pb-3'>
+                    <CardTitle className='text-sm flex items-center gap-2 text-amber-700'>
+                      <AlertCircle className='h-4 w-4' />
+                      Notes Spéciales
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className='text-sm text-amber-900 italic'>
+                    {viewingGuide?.special_notes || 'Aucune note particulière.'}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Dietary Lists */}
+              <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+                <div className='space-y-3'>
+                  <h4 className='text-xs font-black uppercase tracking-widest text-green-700 flex items-center gap-2'>
+                    <CheckCircle2 className='h-4 w-4' />
+                    Recommandé
+                  </h4>
+                  <ul className='space-y-2'>
+                    {viewingGuide?.recommended_foods?.map((f, i) => (
+                      <li key={i} className='text-sm p-2 rounded-lg bg-green-50 border border-green-100 text-green-800 flex items-center gap-2'>
+                        <span className='h-1.5 w-1.5 rounded-full bg-green-400' />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className='space-y-3'>
+                  <h4 className='text-xs font-black uppercase tracking-widest text-red-700 flex items-center gap-2'>
+                    <ShieldAlert className='h-4 w-4' />
+                    À Éviter
+                  </h4>
+                  <ul className='space-y-2'>
+                    {viewingGuide?.foods_to_avoid?.map((f, i) => (
+                      <li key={i} className='text-sm p-2 rounded-lg bg-red-50 border border-red-100 text-red-800 flex items-center gap-2'>
+                        <span className='h-1.5 w-1.5 rounded-full bg-red-400' />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className='space-y-3'>
+                  <h4 className='text-xs font-black uppercase tracking-widest text-blue-700 flex items-center gap-2'>
+                    <Salad className='h-4 w-4' />
+                    Conseils de vie
+                  </h4>
+                  <ul className='space-y-2'>
+                    {viewingGuide?.nutritional_advice?.map((f, i) => (
+                      <li key={i} className='text-sm p-2 rounded-lg bg-blue-50 border border-blue-100 text-blue-800 flex items-center gap-2'>
+                        <span className='h-1.5 w-1.5 rounded-full bg-blue-400' />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {/* Recipes Preview */}
+              <section className='space-y-4 pt-4 border-t'>
+                <h3 className='text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2'>
+                  <ChefHat className='h-4 w-4' />
+                  Recettes ({viewingGuide?.recipes?.length || 0})
+                </h3>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                  {viewingGuide?.recipes?.map((r, i) => (
+                    <Card key={i} className='overflow-hidden group hover:border-primary/50 transition-colors'>
+                      <div className='p-4 space-y-2'>
+                        <div className='flex justify-between items-start'>
+                          <h4 className='font-bold group-hover:text-primary transition-colors'>{r.title}</h4>
+                          <Badge variant='secondary' className='text-[10px]'>{r.calories_field} kcal</Badge>
+                        </div>
+                        <p className='text-xs text-muted-foreground line-clamp-2'>{r.nutrition_benefits}</p>
+                      </div>
+                    </Card>
+                  ))}
+                  {(!viewingGuide?.recipes || viewingGuide.recipes.length === 0) && (
+                    <div className='col-span-2 text-center py-6 text-muted-foreground italic text-sm border-2 border-dashed rounded-xl'>
+                      Aucune recette associée à ce guide.
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+
+            <DialogFooter className='p-6 border-t bg-muted/20'>
+               <Button onClick={() => setIsViewDialogOpen(false)} className='ms-auto'>Fermer</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Create/Edit Dialog */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className='max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0'>
@@ -422,7 +663,7 @@ export function Ghida2akManagement() {
               <DialogDescription>Gérez les sections médicales, les aliments et les recettes associées.</DialogDescription>
             </DialogHeader>
 
-            <Tabs defaultValue='general' className='flex-1 overflow-hidden flex flex-col'>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className='flex-1 overflow-hidden flex flex-col'>
               <div className='px-6'>
                 <TabsList className='grid w-full grid-cols-4'>
                   <TabsTrigger value='general'>Général</TabsTrigger>
@@ -462,18 +703,20 @@ export function Ghida2akManagement() {
                     <div className='space-y-2'>
                       <Label>Catégorie</Label>
                       <Select 
-                        value={editingGuide?.category || ''}
-                        onValueChange={val => setEditingGuide({...editingGuide!, category: val})}
+                        value={editingGuide?.category_id || ''}
+                        onValueChange={val => setEditingGuide({...editingGuide!, category_id: val})}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder='Choisir une catégorie' />
                         </SelectTrigger>
                         <SelectContent>
-                          {categories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                          {nutritionCategories.map(c => <SelectItem key={c.id} value={c.id}>{c.name_fr}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className='space-y-2'>
+                    
+                  </div>
+                  <div className='space-y-2'>
                       <Label>Statut Initial</Label>
                       <Select 
                         value={editingGuide?.workflow_status || ''}
@@ -488,7 +731,6 @@ export function Ghida2akManagement() {
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
                   <div className='space-y-2'>
                     <Label>Aperçu / Introduction</Label>
                     <Textarea 
@@ -496,6 +738,15 @@ export function Ghida2akManagement() {
                       className='min-h-[100px]' 
                       value={editingGuide?.overview || ''}
                       onChange={e => setEditingGuide({...editingGuide!, overview: e.target.value})}
+                    />
+                  </div>
+                  <div className='space-y-2'>
+                    <Label>Contenu détaillé / Article</Label>
+                    <Textarea 
+                      placeholder='Contenu complet du guide nutritionnel...' 
+                      className='min-h-[150px]' 
+                      value={typeof editingGuide?.content === 'string' ? editingGuide.content : JSON.stringify(editingGuide?.content) === '{}' ? '' : JSON.stringify(editingGuide?.content)}
+                      onChange={e => setEditingGuide({...editingGuide!, content: e.target.value})}
                     />
                   </div>
                 </TabsContent>
@@ -659,10 +910,16 @@ export function Ghida2akManagement() {
                             }}
                           />
                         </div>
-                        <Button variant='ghost' size='sm' className='text-red-500' onClick={() => {
-                          const recipes = (editingGuide?.recipes || []).filter((_, i: number) => i !== index)
-                          setEditingGuide({...editingGuide!, recipes})
-                        }}>
+                        <Button 
+                          variant='ghost' 
+                          size='sm' 
+                          className='text-red-500 hover:text-red-700 hover:bg-red-50 gap-2' 
+                          onClick={() => {
+                            const recipes = (editingGuide?.recipes || []).filter((_, i: number) => i !== index)
+                            setEditingGuide({...editingGuide!, recipes})
+                          }}
+                        >
+                          <Trash2 className='h-4 w-4' />
                           Supprimer la recette
                         </Button>
                       </Card>
@@ -672,9 +929,29 @@ export function Ghida2akManagement() {
               </div>
 
               <DialogFooter className='p-6 pt-2 border-t mt-auto shrink-0'>
-                <Button variant='outline' onClick={() => setIsDialogOpen(false)}>Annuler</Button>
-                <Button onClick={handleSave} disabled={isSaving}>
-                  {isSaving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+                <Button variant='outline' onClick={() => {
+                  if (activeTab !== 'general') {
+                    const steps = ['general', 'medical', 'dietary', 'recipes'];
+                    setActiveTab(steps[steps.indexOf(activeTab) - 1]);
+                  } else {
+                    setIsDialogOpen(false);
+                  }
+                }}>
+                  {activeTab === 'general' ? 'Annuler' : 'Précédent'}
+                </Button>
+                <Button onClick={() => {
+                  if (activeTab === 'general' && (!editingGuide?.title || !editingGuide?.cancer_type)) {
+                    toast.error('Veuillez remplir le titre et le type de cancer');
+                    return;
+                  }
+                  if (activeTab !== 'recipes') {
+                    const steps = ['general', 'medical', 'dietary', 'recipes'];
+                    setActiveTab(steps[steps.indexOf(activeTab) + 1]);
+                  } else {
+                    handleSave();
+                  }
+                }} disabled={isSaving}>
+                  {isSaving ? 'Enregistrement...' : activeTab === 'recipes' ? 'Enregistrer' : 'Suivant'}
                 </Button>
               </DialogFooter>
             </Tabs>

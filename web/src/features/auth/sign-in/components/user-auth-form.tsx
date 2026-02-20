@@ -20,10 +20,10 @@ import { Input } from '@/components/ui/input'
 import { PasswordInput } from '@/components/password-input'
 
 const formSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
+  email: z.string().email('Veuillez entrer une adresse email valide'),
   password: z
     .string()
-    .min(1, 'Please enter your password'),
+    .min(1, 'Veuillez entrer votre mot de passe'),
 })
 
 interface UserAuthFormProps extends React.HTMLAttributes<HTMLFormElement> {
@@ -53,7 +53,7 @@ export function UserAuthForm({
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
       const apiUrl = origin ? `${origin}/api/auth/sign-in` : '/api/auth/sign-in'
-      console.log('[AUTH] Attempting login with:', { email: data.email, apiUrl })
+      console.log('[AUTH] Tentative de connexion avec:', { email: data.email, apiUrl })
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -65,19 +65,14 @@ export function UserAuthForm({
         }),
       })
 
-      console.log('[AUTH] Response status:', response.status, response.statusText)
-
       const result = await response.json()
-      console.log('[AUTH] Response data:', result)
 
       if (!response.ok) {
         setIsLoading(false)
-        console.error('[AUTH] Login failed:', result.error)
-        toast.error(result.error || 'Invalid credentials')
+        console.error('[AUTH] Échec de la connexion:', result.error)
+        toast.error(result.error || 'Identifiants invalides')
         return
       }
-
-      console.log('[AUTH] Login successful for user:', result.user.email)
 
       const normalizedUser = {
         accountNo: result.user.id,
@@ -91,15 +86,14 @@ export function UserAuthForm({
       auth.setUser(normalizedUser)
 
       setIsLoading(false)
-      toast.success('Signed in successfully!')
+      toast.success('Connexion réussie !')
 
-      console.log('[AUTH] Redirecting to:', redirectTo || '/overview')
       const targetPath = redirectTo || '/overview'
       navigate({ to: targetPath, replace: true })
     } catch (error) {
       setIsLoading(false)
-      console.error('[AUTH] Error during sign in:', error)
-      toast.error('An error occurred during sign in')
+      console.error('[AUTH] Erreur lors de la connexion:', error)
+      toast.error('Une erreur est survenue lors de la connexion')
     }
   }
 
@@ -115,9 +109,9 @@ export function UserAuthForm({
           name='email'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Username</FormLabel>
+              <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder='admin' {...field} />
+                <Input placeholder='nom@exemple.com' {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -128,23 +122,27 @@ export function UserAuthForm({
           name='password'
           render={({ field }) => (
             <FormItem className='relative'>
-              <FormLabel>Password</FormLabel>
+              <FormLabel>Mot de passe</FormLabel>
               <FormControl>
                 <PasswordInput placeholder='********' {...field} />
               </FormControl>
               <FormMessage />
               <Link
                 to='/forgot-password'
-                className='absolute end-0 -top-0.5 text-sm font-medium text-muted-foreground hover:opacity-75'
+                className='absolute end-0 -top-0.5 text-sm font-medium text-primary hover:opacity-75 transition-opacity'
               >
-                Forgot password?
+                Mot de passe oublié ?
               </Link>
             </FormItem>
           )}
         />
-        <Button className='mt-2' disabled={isLoading}>
-          {isLoading ? <Loader2 className='animate-spin' /> : <LogIn />}
-          Sign in
+        <Button className='mt-16 h-11 bg-primary hover:bg-primary/90 rounded-xl shadow-lg transition-all active:scale-[0.98]' disabled={isLoading}>
+          {isLoading ? (
+            <Loader2 className='animate-spin mr-2 h-4 w-4' />
+          ) : (
+            <LogIn className='mr-2 h-4 w-4' />
+          )}
+          Se connecter
         </Button>
       </form>
     </Form>
