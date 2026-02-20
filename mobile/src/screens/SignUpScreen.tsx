@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -19,17 +19,20 @@ import { useNavigation } from '@react-navigation/native';
 import MyPressable from '../components/MyPressable';
 import AnimatedBackground from '../components/AnimatedBackground';
 import { useAuth } from '../contexts/AuthContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import LanguageModal from '../components/LanguageModal';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { UserRole } from '../types';
 import WilayaData from '../../assets/Wilaya_Of_Algeria.json';
 import CommuneData from '../../assets/Commune_Of_Algeria.json';
 
-const ROLES = [
-  { id: 'patient', label: 'Patient / Proche', icon: '👤' },
-  { id: 'doctor', label: 'Médecin', icon: '👨‍⚕️' },
-  { id: 'pharmacy', label: 'Pharmacie', icon: '💊' },
-  { id: 'association', label: 'Association', icon: '🤝' },
-  { id: 'cancer_center', label: 'Centre Cancer', icon: '🏥' },
-  { id: 'laboratory', label: 'Laboratoire', icon: '🔬' },
+const getRoles = (t: any) => [
+  { id: 'patient', label: t('role_patient') || 'Patient / Proche', icon: 'person-outline' },
+  { id: 'doctor', label: t('role_doctor') || 'Médecin', icon: 'medical-outline' },
+  { id: 'pharmacy', label: t('role_pharmacy') || 'Pharmacie', icon: 'bandage-outline' },
+  { id: 'association', label: t('role_association') || 'Association', icon: 'heart-outline' },
+  { id: 'cancer_center', label: t('role_cancer_center') || 'Centre Cancer', icon: 'business-outline' },
+  { id: 'laboratory', label: t('role_laboratory') || 'Laboratoire', icon: 'flask-outline' },
 ];
 
 const PRIMARY_COLOR = '#7D5AB4';
@@ -51,6 +54,8 @@ const SignUpScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [filteredCommunes, setFilteredCommunes] = useState<any[]>([]);
+  const { language, t } = useLanguage();
+  const [showLangModal, setShowLangModal] = useState(false);
 
   const nameBorderAnim = useRef(new Animated.Value(0)).current;
   const emailBorderAnim = useRef(new Animated.Value(0)).current;
@@ -97,9 +102,16 @@ const SignUpScreen: React.FC = () => {
       outputRange: ['#e0e0e0', PRIMARY_COLOR],
     });
 
+  const rolesList = useMemo(() => getRoles(t), [t]);
+
   const getRoleLabel = () => {
-    const role = ROLES.find(r => r.id === selectedRole);
-    return role ? `${role.icon} ${role.label}` : 'Sélectionnez votre rôle';
+    const role = rolesList.find((r: any) => r.id === selectedRole);
+    return role ? role.label : t('select_role') || 'Sélectionnez votre rôle';
+  };
+ 
+  const getRoleIcon = () => {
+    const role = rolesList.find((r: any) => r.id === selectedRole);
+    return role ? role.icon : 'person-outline';
   };
 
   const handleWilayaSelect = (wilayaName: string) => {
@@ -132,23 +144,23 @@ const SignUpScreen: React.FC = () => {
         >
           <View style={[styles.container, { paddingTop: insets.top + 30 }]}>
             <Animated.View style={{ opacity: titleOpacityAnim }}>
-              <Text style={styles.title}>Rejoignez Canstory</Text>
-              <Text style={styles.subtitle}>Créez votre compte</Text>
+              <Text style={styles.title}>{t('signup_title') || 'Rejoignez Canstory'}</Text>
+              <Text style={styles.subtitle}>{t('signup_subtitle') || 'Créez votre compte'}</Text>
             </Animated.View>
 
             <Animated.View style={[styles.formContainer, { opacity: formOpacityAnim }]}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Nom Complet</Text>
+                <Text style={styles.label}>{t('full_name_label') || 'Nom Complet'}</Text>
                 <Animated.View
                   style={[
                     styles.inputWrapper,
                     { borderColor: createBorderColor(nameBorderAnim) },
                   ]}
                 >
-                  <Text style={styles.icon}>👤</Text>
+                  <Ionicons name="person-outline" size={20} color={PRIMARY_COLOR} style={{ marginRight: 12 }} />
                   <TextInput
                     style={styles.input}
-                    placeholder="Votre nom"
+                    placeholder={t('full_name_placeholder') || "Votre nom"}
                     placeholderTextColor="#bbb"
                     value={name}
                     onChangeText={setName}
@@ -159,17 +171,17 @@ const SignUpScreen: React.FC = () => {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email</Text>
+                <Text style={styles.label}>{t('email')}</Text>
                 <Animated.View
                   style={[
                     styles.inputWrapper,
                     { borderColor: createBorderColor(emailBorderAnim) },
                   ]}
                 >
-                  <Text style={styles.icon}>✉️</Text>
+                  <Ionicons name="mail-outline" size={20} color={PRIMARY_COLOR} style={{ marginRight: 12 }} />
                   <TextInput
                     style={styles.input}
-                    placeholder="votre@email.com"
+                    placeholder={t('email_placeholder') || "votre@email.com"}
                     placeholderTextColor="#bbb"
                     value={email}
                     onChangeText={setEmail}
@@ -179,9 +191,9 @@ const SignUpScreen: React.FC = () => {
                   />
                 </Animated.View>
               </View>
-
+ 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Rôle</Text>
+                <Text style={styles.label}>{t('role_label') || 'Rôle'}</Text>
                 <MyPressable
                   style={[
                     styles.inputWrapper,
@@ -189,26 +201,26 @@ const SignUpScreen: React.FC = () => {
                   ]}
                   onPress={() => setShowRoleModal(true)}
                 >
-                  <Text style={styles.icon}>👥</Text>
+                  <Ionicons name={getRoleIcon() as any} size={20} color={PRIMARY_COLOR} style={{ marginRight: 12 }} />
                   <Text style={[styles.input, { color: selectedRole ? '#333' : '#bbb' }]}>
-                    {getRoleLabel()}
+                    {selectedRole ? getRoleLabel() : (t('select_role') || 'Sélectionnez votre rôle')}
                   </Text>
-                  <Text style={{ fontSize: 16, color: PRIMARY_COLOR }}>▼</Text>
+                  <Ionicons name="chevron-down" size={16} color={PRIMARY_COLOR} />
                 </MyPressable>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Mot de passe</Text>
+                <Text style={styles.label}>{t('password')}</Text>
                 <Animated.View
                   style={[
                     styles.inputWrapper,
                     { borderColor: createBorderColor(passwordBorderAnim) },
                   ]}
                 >
-                  <Text style={styles.icon}>🔒</Text>
+                  <Ionicons name="lock-closed-outline" size={20} color={PRIMARY_COLOR} style={{ marginRight: 12 }} />
                   <TextInput
                     style={styles.input}
-                    placeholder="••••••••"
+                    placeholder={t('password_placeholder') || "••••••••"}
                     placeholderTextColor="#bbb"
                     value={password}
                     onChangeText={setPassword}
@@ -217,23 +229,23 @@ const SignUpScreen: React.FC = () => {
                     onBlur={() => handleBlur(passwordBorderAnim)}
                   />
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                    <Text style={styles.eyeIconText}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+                    <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={22} color={PRIMARY_COLOR} />
                   </TouchableOpacity>
                 </Animated.View>
               </View>
-
+ 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Confirmer le mot de passe</Text>
+                <Text style={styles.label}>{t('confirm_password') || 'Confirmer le mot de passe'}</Text>
                 <Animated.View
                   style={[
                     styles.inputWrapper,
                     { borderColor: createBorderColor(confirmPasswordBorderAnim) },
                   ]}
                 >
-                  <Text style={styles.icon}>✓</Text>
+                  <Ionicons name="checkmark-circle-outline" size={20} color={PRIMARY_COLOR} style={{ marginRight: 12 }} />
                   <TextInput
                     style={styles.input}
-                    placeholder="••••••••"
+                    placeholder={t('confirm_password_placeholder') || "••••••••"}
                     placeholderTextColor="#bbb"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
@@ -242,13 +254,13 @@ const SignUpScreen: React.FC = () => {
                     onBlur={() => handleBlur(confirmPasswordBorderAnim)}
                   />
                   <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
-                    <Text style={styles.eyeIconText}>{showConfirmPassword ? '👁️' : '👁️‍🗨️'}</Text>
+                    <Ionicons name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} size={22} color={PRIMARY_COLOR} />
                   </TouchableOpacity>
                 </Animated.View>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Wilaya</Text>
+                <Text style={styles.label}>{t('wilaya_label') || 'Wilaya'}</Text>
                 <MyPressable
                   style={[
                     styles.inputWrapper,
@@ -256,28 +268,28 @@ const SignUpScreen: React.FC = () => {
                   ]}
                   onPress={() => setShowWilayaModal(true)}
                 >
-                  <Text style={styles.icon}>📍</Text>
+                  <Ionicons name="location-outline" size={20} color={PRIMARY_COLOR} style={{ marginRight: 12 }} />
                   <Text style={[styles.input, { color: wilaya ? '#333' : '#bbb' }]}>
-                    {wilaya || 'Sélectionnez votre wilaya'}
+                    {wilaya || (t('select_wilaya') || 'Sélectionnez votre wilaya')}
                   </Text>
-                  <Text style={{ fontSize: 16, color: PRIMARY_COLOR }}>▼</Text>
+                  <Ionicons name="chevron-down" size={16} color={PRIMARY_COLOR} />
                 </MyPressable>
               </View>
-
+ 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Commune</Text>
+                <Text style={styles.label}>{t('commune_label') || 'Commune'}</Text>
                 <MyPressable
                   style={[
                     styles.inputWrapper,
                     { borderColor: commune ? PRIMARY_COLOR : '#e0e0e0' },
                   ]}
-                  onPress={() => wilaya ? setShowCommuneModal(true) : Alert.alert('Erreur', 'Veuillez d\'abord sélectionner une wilaya')}
+                  onPress={() => wilaya ? setShowCommuneModal(true) : Alert.alert(t('error') || 'Erreur', t('error_wilaya_required') || 'Veuillez d\'abord sélectionner une wilaya', [{ text: t('ok') || 'OK' }])}
                 >
-                  <Text style={styles.icon}>🏘️</Text>
+                  <Ionicons name="business-outline" size={20} color={PRIMARY_COLOR} style={{ marginRight: 12 }} />
                   <Text style={[styles.input, { color: commune ? '#333' : '#bbb' }]}>
-                    {commune || 'Sélectionnez votre commune'}
+                    {commune || (t('select_commune') || 'Sélectionnez votre commune')}
                   </Text>
-                  <Text style={{ fontSize: 16, color: PRIMARY_COLOR }}>▼</Text>
+                  <Ionicons name="chevron-down" size={16} color={PRIMARY_COLOR} />
                 </MyPressable>
               </View>
 
@@ -287,15 +299,15 @@ const SignUpScreen: React.FC = () => {
                 onPress={async () => {
                   if (loading) return;
                   if (!name || !email || !password || !confirmPassword || !selectedRole || !wilaya || !commune) {
-                    Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+                    Alert.alert(t('error') || 'Erreur', t('error_fill_all_fields') || 'Veuillez remplir tous les champs', [{ text: t('ok') || 'OK' }]);
                     return;
                   }
                   if (password !== confirmPassword) {
-                    Alert.alert('Erreur', 'Les mots de passe ne correspondent pas');
+                    Alert.alert(t('error') || 'Erreur', t('error_passwords_not_match') || 'Les mots de passe ne correspondent pas', [{ text: t('ok') || 'OK' }]);
                     return;
                   }
                   if (password.length < 6) {
-                    Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 6 caractères');
+                    Alert.alert(t('error') || 'Erreur', t('error_password_length') || 'Le mot de passe doit contenir au moins 6 caractères', [{ text: t('ok') || 'OK' }]);
                     return;
                   }
                   const { error } = await signUp({
@@ -307,15 +319,15 @@ const SignUpScreen: React.FC = () => {
                     commune,
                   });
                   if (error) {
-                    Alert.alert('Erreur d\'inscription', error.message);
+                    Alert.alert(t('signup_error_title') || 'Erreur d\'inscription', error.message, [{ text: t('ok') || 'OK' }]);
                   } else {
                     if (selectedRole === 'doctor') {
-                      Alert.alert('Succès', 'Compte créé avec succès! Veuillez vous connecter pour compléter votre profil.', [
-                        { text: 'OK', onPress: () => navigation.navigate('SignIn' as never) },
+                      Alert.alert(t('success') || 'Succès', t('signup_success_doctor_message') || 'Compte créé avec succès! Veuillez vous connecter pour compléter votre profil.', [
+                        { text: t('ok') || 'OK', onPress: () => navigation.navigate('SignIn' as never) },
                       ]);
                     } else {
-                      Alert.alert('Succès', 'Compte créé avec succès! Veuillez vous connecter.', [
-                        { text: 'OK', onPress: () => navigation.navigate('SignIn' as never) },
+                      Alert.alert(t('success') || 'Succès', t('signup_success_message') || 'Compte créé avec succès! Veuillez vous connecter.', [
+                        { text: t('ok') || 'OK', onPress: () => navigation.navigate('SignIn' as never) },
                       ]);
                     }
                   }
@@ -325,16 +337,16 @@ const SignUpScreen: React.FC = () => {
                 {loading ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text style={styles.signUpButtonText}>Créer mon compte</Text>
+                  <Text style={styles.signUpButtonText}>{t('signup_button') || 'Créer mon compte'}</Text>
                 )}
               </MyPressable>
 
               <View style={styles.signInContainer}>
-                <Text style={styles.signInText}>Vous avez déjà un compte? </Text>
+                <Text style={styles.signInText}>{t('already_account') || 'Vous avez déjà un compte?'} </Text>
                 <MyPressable
                   onPress={() => navigation.navigate('SignIn' as never)}
                 >
-                  <Text style={styles.signInLink}>Se connecter</Text>
+                  <Text style={styles.signInLink}>{t('login_button') || 'Se connecter'}</Text>
                 </MyPressable>
               </View>
             </Animated.View>
@@ -351,14 +363,14 @@ const SignUpScreen: React.FC = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Sélectionnez votre rôle</Text>
+              <Text style={styles.modalTitle}>{t('select_role') || 'Sélectionnez votre rôle'}</Text>
               <MyPressable onPress={() => setShowRoleModal(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Ionicons name="close" size={24} color="#999" />
               </MyPressable>
             </View>
 
             <ScrollView style={styles.rolesList}>
-              {ROLES.map(role => (
+              {rolesList.map((role: any) => (
                 <MyPressable
                   key={role.id}
                   style={[
@@ -370,12 +382,12 @@ const SignUpScreen: React.FC = () => {
                     setShowRoleModal(false);
                   }}
                 >
-                  <Text style={styles.roleIcon}>{role.icon}</Text>
+                  <Ionicons name={role.icon as any} size={28} color={PRIMARY_COLOR} style={{ marginRight: 12 }} />
                   <View style={styles.roleInfo}>
                     <Text style={styles.roleLabel}>{role.label}</Text>
                   </View>
                   {selectedRole === role.id && (
-                    <Text style={styles.roleCheckmark}>✓</Text>
+                    <Ionicons name="checkmark-circle" size={20} color={PRIMARY_COLOR} />
                   )}
                 </MyPressable>
               ))}
@@ -393,9 +405,9 @@ const SignUpScreen: React.FC = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Sélectionnez votre wilaya</Text>
+              <Text style={styles.modalTitle}>{t('select_wilaya') || 'Sélectionnez votre wilaya'}</Text>
               <MyPressable onPress={() => setShowWilayaModal(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Ionicons name="close" size={24} color="#999" />
               </MyPressable>
             </View>
 
@@ -434,9 +446,9 @@ const SignUpScreen: React.FC = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Sélectionnez votre commune</Text>
+              <Text style={styles.modalTitle}>{t('select_commune') || 'Sélectionnez votre commune'}</Text>
               <MyPressable onPress={() => setShowCommuneModal(false)}>
-                <Text style={styles.modalClose}>✕</Text>
+                <Ionicons name="close" size={24} color="#999" />
               </MyPressable>
             </View>
 
@@ -465,6 +477,23 @@ const SignUpScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
+
+      <View style={[styles.languageContainer, { top: insets.top + 16, right: 20 }]}>
+        <TouchableOpacity 
+          style={styles.languageButton} 
+          onPress={() => setShowLangModal(true)}
+          activeOpacity={0.6}
+        >
+          <View style={styles.langIndicator}>
+            <Text style={styles.languageText}>{language}</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      <LanguageModal 
+        visible={showLangModal} 
+        onClose={() => setShowLangModal(false)} 
+      />
     </AnimatedBackground>
   );
 };
@@ -701,6 +730,31 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: PRIMARY_COLOR,
     fontWeight: '700',
+  },
+  languageContainer: {
+    position: 'absolute',
+    zIndex: 1000,
+  },
+  languageButton: {
+    padding: 4,
+  },
+  langIndicator: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1.5,
+    borderColor: PRIMARY_COLOR,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  languageText: {
+    color: PRIMARY_COLOR,
+    fontSize: 12,
+    fontWeight: '900',
   },
 });
 

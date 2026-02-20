@@ -10,11 +10,14 @@ import {
   RefreshControl,
   Linking,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import AnimatedBackground from '../../components/AnimatedBackground';
 import { ApiService } from '../../services/api.service';
+import { useLanguage } from '../../contexts/LanguageContext';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const { width } = Dimensions.get('window');
 
@@ -60,6 +63,7 @@ interface ContactInfo {
 
 const AboutScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
+  const { t, language } = useLanguage();
   const [sections, setSections] = useState<AboutSection[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [contacts, setContacts] = useState<ContactInfo[]>([]);
@@ -70,23 +74,34 @@ const AboutScreen: React.FC = () => {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
 
   useEffect(() => {
     loadAboutData();
     
+    fadeAnim.setValue(0);
+    scaleAnim.setValue(0.9);
+    slideAnim.setValue(50);
+    
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 600,
+        duration: 700,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
-        friction: 8,
+        friction: 7,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 700,
         useNativeDriver: true,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, scaleAnim, slideAnim]);
 
   const loadAboutData = async () => {
     try {
@@ -135,27 +150,27 @@ const AboutScreen: React.FC = () => {
 
   const getSectionIcon = (section: string) => {
     const icons: { [key: string]: string } = {
-      mission: '🎯',
-      vision: '👁️',
-      values: '💎',
-      story: '📖',
-      team: '👥',
-      default: '✨',
+      mission: 'target',
+      vision: 'eye-outline',
+      values: 'diamond-outline',
+      story: 'book-outline',
+      team: 'people-outline',
+      default: 'sparkles-outline',
     };
     return icons[section.toLowerCase()] || icons.default;
   };
 
   const getContactIcon = (type: string) => {
     const icons: { [key: string]: string } = {
-      phone: '📞',
-      email: '✉️',
-      address: '📍',
-      website: '🌐',
-      facebook: '📘',
-      instagram: '📷',
-      twitter: '🐦',
-      linkedin: '💼',
-      default: '📋',
+      phone: 'call-outline',
+      email: 'mail-outline',
+      address: 'location-outline',
+      website: 'globe-outline',
+      facebook: 'logo-facebook',
+      instagram: 'logo-instagram',
+      twitter: 'logo-twitter',
+      linkedin: 'logo-linkedin',
+      default: 'information-circle-outline',
     };
     return icons[type.toLowerCase()] || icons.default;
   };
@@ -186,7 +201,7 @@ const AboutScreen: React.FC = () => {
 
   const renderHero = () => (
     <LinearGradient
-      colors={['#667eea', '#764ba2']}
+      colors={['#7b1fa2', '#6a1b9a']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.hero}
@@ -200,9 +215,9 @@ const AboutScreen: React.FC = () => {
           },
         ]}
       >
-        <Text style={styles.heroIcon}>🎗️</Text>
-        <Text style={styles.heroTitle}>À Propos</Text>
-        <Text style={styles.heroSubtitle}>Canstory - Ensemble contre le cancer</Text>
+        <Ionicons name="ribbon-outline" size={60} color="white" style={{ marginBottom: 12 }} />
+        <Text style={styles.heroTitle}>{t('about_app') || 'À Propos'}</Text>
+        <Text style={styles.heroSubtitle}>{t('about_hero_subtitle') || 'Canstory - Ensemble contre le cancer'}</Text>
       </Animated.View>
     </LinearGradient>
   );
@@ -220,10 +235,11 @@ const AboutScreen: React.FC = () => {
           {
             opacity: fadeAnim,
             transform: [
+              { scale: scaleAnim },
               {
-                translateY: fadeAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [30, 0],
+                translateY: slideAnim.interpolate({
+                  inputRange: [0, 50],
+                  outputRange: [0, 30],
                 }),
               },
             ],
@@ -236,10 +252,12 @@ const AboutScreen: React.FC = () => {
         >
           <View style={styles.sectionHeader}>
             <View style={styles.sectionIconContainer}>
-              <Text style={styles.sectionIcon}>{getSectionIcon(section.section)}</Text>
+              <Ionicons name={getSectionIcon(section.section) as any} size={24} color="#7b1fa2" />
             </View>
             <View style={styles.sectionHeaderText}>
-              <Text style={styles.sectionTitle}>{section.title_fr || section.section}</Text>
+              <Text style={styles.sectionTitle}>
+                {language === 'AR' ? section.title_ar : (language === 'EN' ? section.title_en : section.title_fr) || section.section}
+              </Text>
             </View>
           </View>
 
@@ -248,13 +266,13 @@ const AboutScreen: React.FC = () => {
               style={styles.sectionText}
               numberOfLines={isExpanded ? undefined : 3}
             >
-              {content}
+              {language === 'AR' ? section.content_ar : (language === 'EN' ? section.content_en : section.content_fr)}
             </Text>
 
             {shouldShowExpand && (
               <View style={styles.expandIndicator}>
                 <Text style={styles.expandText}>
-                  {isExpanded ? 'Voir moins ⬆' : 'Voir plus ⬇'}
+                  {isExpanded ? (t('view_less') || 'Voir moins') : (t('view_more') || 'Voir plus')}
                 </Text>
               </View>
             )}
@@ -276,10 +294,11 @@ const AboutScreen: React.FC = () => {
           {
             opacity: fadeAnim,
             transform: [
+              { scale: scaleAnim },
               {
-                translateY: fadeAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [30, 0],
+                translateY: slideAnim.interpolate({
+                  inputRange: [0, 50],
+                  outputRange: [0, 30],
                 }),
               },
             ],
@@ -303,14 +322,18 @@ const AboutScreen: React.FC = () => {
 
             <View style={styles.teamInfo}>
               <Text style={styles.teamName}>{member.full_name}</Text>
-              <Text style={styles.teamPosition}>{member.position_fr}</Text>
+              <Text style={styles.teamPosition}>
+                {language === 'AR' ? member.position_ar : (language === 'EN' ? member.position_en : member.position_fr)}
+              </Text>
             </View>
           </View>
 
-          {isExpanded && member.bio_fr && (
+          {isExpanded && (member.bio_fr || member.bio_ar || member.bio_en) && (
             <View style={styles.teamBio}>
               <View style={styles.divider} />
-              <Text style={styles.bioText}>{member.bio_fr}</Text>
+              <Text style={styles.bioText}>
+                {language === 'AR' ? member.bio_ar : (language === 'EN' ? member.bio_en : member.bio_fr)}
+              </Text>
             </View>
           )}
 
@@ -321,7 +344,7 @@ const AboutScreen: React.FC = () => {
                   style={styles.teamActionBtn}
                   onPress={() => Linking.openURL(`mailto:${member.email}`)}
                 >
-                  <Text style={styles.actionIcon}>✉️</Text>
+                  <Ionicons name="mail-outline" size={18} color="#7b1fa2" style={{ marginRight: 6 }} />
                   <Text style={styles.actionLabel}>Email</Text>
                 </TouchableOpacity>
               )}
@@ -331,7 +354,7 @@ const AboutScreen: React.FC = () => {
                   style={styles.teamActionBtn}
                   onPress={() => Linking.openURL(member.linkedin_url!)}
                 >
-                  <Text style={styles.actionIcon}>💼</Text>
+                  <Ionicons name="logo-linkedin" size={18} color="#0077b5" style={{ marginRight: 6 }} />
                   <Text style={styles.actionLabel}>LinkedIn</Text>
                 </TouchableOpacity>
               )}
@@ -341,7 +364,7 @@ const AboutScreen: React.FC = () => {
           {hasBio && (
             <View style={styles.tapIndicator}>
               <Text style={styles.tapText}>
-                {isExpanded ? 'Appuyez pour réduire ⬆' : 'Appuyez pour voir la bio ⬇'}
+                {isExpanded ? (t('tap_to_collapse') || 'Appuyez pour réduire') : (t('tap_to_expand') || 'Appuyez pour voir la bio')}
               </Text>
             </View>
           )}
@@ -358,10 +381,11 @@ const AboutScreen: React.FC = () => {
         {
           opacity: fadeAnim,
           transform: [
+            { scale: scaleAnim },
             {
-              translateY: fadeAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [30, 0],
+              translateY: slideAnim.interpolate({
+                inputRange: [0, 50],
+                outputRange: [0, 30],
               }),
             },
           ],
@@ -374,16 +398,18 @@ const AboutScreen: React.FC = () => {
         activeOpacity={0.7}
       >
         <View style={styles.contactIconContainer}>
-          <Text style={styles.contactIcon}>{getContactIcon(contact.type)}</Text>
+          <Ionicons name={getContactIcon(contact.type) as any} size={20} color="#7b1fa2" />
         </View>
 
         <View style={styles.contactInfo}>
-          <Text style={styles.contactLabel}>{contact.label_fr}</Text>
+          <Text style={styles.contactLabel}>
+            {language === 'AR' ? contact.label_ar : (language === 'EN' ? contact.label_en : contact.label_fr)}
+          </Text>
           <Text style={styles.contactValue}>{contact.value}</Text>
         </View>
 
         <View style={styles.contactArrow}>
-          <Text style={styles.arrowIcon}>→</Text>
+          <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -391,7 +417,7 @@ const AboutScreen: React.FC = () => {
 
   return (
     <AnimatedBackground>
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={[styles.container, { paddingTop: 0 }]}>
         {renderHero()}
 
         <ScrollView
@@ -404,7 +430,8 @@ const AboutScreen: React.FC = () => {
         >
           {loading ? (
             <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>✨ Chargement...</Text>
+              <ActivityIndicator color="#7b1fa2" size="large" />
+              <Text style={styles.loadingText}>{t('about_loading') || 'Chargement...'}</Text>
             </View>
           ) : (
             <>
@@ -419,8 +446,8 @@ const AboutScreen: React.FC = () => {
               {teamMembers.length > 0 && (
                 <View style={styles.teamContainer}>
                   <View style={styles.categoryHeader}>
-                    <Text style={styles.categoryIcon}>👥</Text>
-                    <Text style={styles.categoryTitle}>Notre Équipe</Text>
+                    <Ionicons name="people-outline" size={28} color="#7b1fa2" style={{ marginRight: 12 }} />
+                    <Text style={styles.categoryTitle}>{t('about_team') || 'Notre Équipe'}</Text>
                   </View>
                   {teamMembers.map((member, index) => renderTeamMember(member, index))}
                 </View>
@@ -430,8 +457,8 @@ const AboutScreen: React.FC = () => {
               {contacts.length > 0 && (
                 <View style={styles.contactsContainer}>
                   <View style={styles.categoryHeader}>
-                    <Text style={styles.categoryIcon}>📞</Text>
-                    <Text style={styles.categoryTitle}>Nous Contacter</Text>
+                    <Ionicons name="call-outline" size={28} color="#7b1fa2" style={{ marginRight: 12 }} />
+                    <Text style={styles.categoryTitle}>{t('about_contact') || 'Nous Contacter'}</Text>
                   </View>
                   {contacts.map((contact, index) => renderContact(contact, index))}
                 </View>
@@ -440,10 +467,10 @@ const AboutScreen: React.FC = () => {
               {/* Empty State */}
               {sections.length === 0 && teamMembers.length === 0 && contacts.length === 0 && (
                 <View style={styles.emptyState}>
-                  <Text style={styles.emptyIcon}>📄</Text>
-                  <Text style={styles.emptyTitle}>Aucune information disponible</Text>
+                  <Ionicons name="document-text-outline" size={64} color="#ddd" style={{ marginBottom: 16 }} />
+                  <Text style={styles.emptyTitle}>{t('about_no_info') || 'Aucune information disponible'}</Text>
                   <Text style={styles.emptyText}>
-                    Le contenu sera bientôt disponible
+                    {t('about_soon') || 'Le contenu sera bientôt disponible'}
                   </Text>
                 </View>
               )}
@@ -511,14 +538,14 @@ const styles = StyleSheet.create({
   },
   sectionCard: {
     backgroundColor: 'white',
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 20,
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 6,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -585,14 +612,14 @@ const styles = StyleSheet.create({
   },
   teamCard: {
     backgroundColor: 'white',
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 20,
     marginBottom: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 6,
   },
   teamHeader: {
     flexDirection: 'row',
@@ -686,13 +713,13 @@ const styles = StyleSheet.create({
   },
   contactCard: {
     backgroundColor: 'white',
-    borderRadius: 16,
+    borderRadius: 20,
     marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
   contactContent: {
     flexDirection: 'row',

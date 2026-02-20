@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Tag, Stethoscope, FileText, Plus, ToggleLeft, ToggleRight, Trash2, Eye } from 'lucide-react'
+import { Tag, Stethoscope, FileText, Plus, ToggleLeft, ToggleRight, Trash2, Eye, ChefHat } from 'lucide-react'
 import { toast } from 'sonner'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -28,6 +28,10 @@ import {
   useCreateGuideCategory,
   useDeleteGuideCategory,
   useToggleGuideCategoryStatus,
+  useNutritionCategories,
+  useCreateNutritionCategory,
+  useDeleteNutritionCategory,
+  useToggleNutritionCategoryStatus,
 } from '@/hooks/use-categories'
 import type { Category } from '@/services/categories'
 
@@ -53,29 +57,38 @@ export function CategoriesManagement() {
   const createGuideMutation = useCreateGuideCategory()
   const deleteGuideMutation = useDeleteGuideCategory()
   const toggleGuideMutation = useToggleGuideCategoryStatus()
+  const { data: nutritionCategories = [] } = useNutritionCategories()
+  const createNutritionMutation = useCreateNutritionCategory()
+  const deleteNutritionMutation = useDeleteNutritionCategory()
+  const toggleNutritionMutation = useToggleNutritionCategoryStatus()
 
   // Dialog states
   const [isArticleCatDialogOpen, setIsArticleCatDialogOpen] = useState(false)
   const [isSpecialtyDialogOpen, setIsSpecialtyDialogOpen] = useState(false)
   const [isGuideCatDialogOpen, setIsGuideCatDialogOpen] = useState(false)
+  const [isNutritionCatDialogOpen, setIsNutritionCatDialogOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [articleFormData, setArticleFormData] = useState({ name_fr: '', name_ar: '', slug: '' })
   const [specialtyFormData, setSpecialtyFormData] = useState({ name_fr: '', name_ar: '', slug: '' })
   const [guideFormData, setGuideFormData] = useState({ name_fr: '', name_ar: '', slug: '' })
+  const [nutritionFormData, setNutritionFormData] = useState({ name_fr: '', name_ar: '', slug: '' })
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; type: 'article' | 'specialty' | 'guide' } | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; type: 'article' | 'specialty' | 'guide' | 'nutrition' } | null>(null)
   const [articleSearch, setArticleSearch] = useState('')
   const [specialtySearch, setSpecialtySearch] = useState('')
   const [guideSearch, setGuideSearch] = useState('')
+  const [nutritionSearch, setNutritionSearch] = useState('')
   const [articleFilter, setArticleFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [specialtyFilter, setSpecialtyFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [guideFilter, setGuideFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [nutritionFilter, setNutritionFilter] = useState<'all' | 'active' | 'inactive'>('all')
 
-  const handleToggleActive = (id: string, type: 'article' | 'specialty' | 'guide') => {
+  const handleToggleActive = (id: string, type: 'article' | 'specialty' | 'guide' | 'nutrition') => {
     const item = type === 'article' ? articleCategories.find(c => c.id === id) : 
                  type === 'specialty' ? specialties.find(s => s.id === id) : 
-                 guideCategories.find(g => g.id === id)
+                 type === 'guide' ? guideCategories.find(g => g.id === id) :
+                 nutritionCategories.find(n => n.id === id)
     
     if (!item) return
     
@@ -83,12 +96,14 @@ export function CategoriesManagement() {
       toggleArticleMutation.mutate({ id, is_active: !item.is_active })
     } else if (type === 'specialty') {
       toggleSpecialtyMutation.mutate({ id, is_active: !item.is_active })
-    } else {
+    } else if (type === 'guide') {
       toggleGuideMutation.mutate({ id, is_active: !item.is_active })
+    } else {
+      toggleNutritionMutation.mutate({ id, is_active: !item.is_active })
     }
   }
 
-  const handleDelete = (id: string, type: 'article' | 'specialty' | 'guide') => {
+  const handleDelete = (id: string, type: 'article' | 'specialty' | 'guide' | 'nutrition') => {
     setDeleteTarget({ id, type })
     setDeleteConfirmOpen(true)
   }
@@ -100,8 +115,10 @@ export function CategoriesManagement() {
       deleteArticleMutation.mutate(deleteTarget.id)
     } else if (deleteTarget.type === 'specialty') {
       deleteSpecialtyMutation.mutate(deleteTarget.id)
-    } else {
+    } else if (deleteTarget.type === 'guide') {
       deleteGuideMutation.mutate(deleteTarget.id)
+    } else {
+      deleteNutritionMutation.mutate(deleteTarget.id)
     }
     
     setDeleteConfirmOpen(false)
@@ -135,6 +152,7 @@ export function CategoriesManagement() {
   const filteredArticles = filterAndSearch(articleCategories, articleSearch, articleFilter)
   const filteredSpecialties = filterAndSearch(specialties, specialtySearch, specialtyFilter)
   const filteredGuides = filterAndSearch(guideCategories, guideSearch, guideFilter)
+  const filteredNutrition = filterAndSearch(nutritionCategories, nutritionSearch, nutritionFilter)
 
   const handleAddArticleCategory = () => {
     if (!articleFormData.name_fr || !articleFormData.name_ar) {
@@ -190,6 +208,24 @@ export function CategoriesManagement() {
     })
   }
 
+  const handleAddNutritionCategory = () => {
+    if (!nutritionFormData.name_fr || !nutritionFormData.name_ar) {
+      toast.error('Veuillez remplir tous les champs')
+      return
+    }
+    createNutritionMutation.mutate({
+      name_fr: nutritionFormData.name_fr,
+      name_ar: nutritionFormData.name_ar,
+      slug: nutritionFormData.slug || generateSlug(nutritionFormData.name_fr),
+      is_active: true,
+    }, {
+      onSuccess: () => {
+        setNutritionFormData({ name_fr: '', name_ar: '', slug: '' })
+        setIsNutritionCatDialogOpen(false)
+      }
+    })
+  }
+
   return (
     <>
       <Header>
@@ -212,10 +248,11 @@ export function CategoriesManagement() {
           </div>
 
           <Tabs defaultValue='articles' className='w-full'>
-            <TabsList className='grid w-full grid-cols-3'>
+            <TabsList className='grid w-full grid-cols-4'>
               <TabsTrigger value='articles'>Catégories Articles</TabsTrigger>
-              <TabsTrigger value='specialties'>Spécialités Médicales</TabsTrigger>
               <TabsTrigger value='guides'>Catégories Guides</TabsTrigger>
+              <TabsTrigger value='nutrition'>Catégories Nutrition</TabsTrigger>
+              <TabsTrigger value='specialties'>Spécialités Médicales</TabsTrigger>
             </TabsList>
 
             <TabsContent value='articles' className='space-y-4'>
@@ -636,6 +673,149 @@ export function CategoriesManagement() {
                                 variant='ghost'
                                 className='h-8 w-8 p-0 text-red-600 hover:text-red-700'
                                 onClick={() => handleDelete(category.id, 'guide')}
+                                title='Supprimer'
+                              >
+                                <Trash2 className='h-4 w-4' />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            <TabsContent value='nutrition' className='space-y-4'>
+              <Card>
+                <CardHeader>
+                  <div className='flex items-center justify-between'>
+                    <div>
+                      <CardTitle className='flex items-center gap-2'>
+                        <ChefHat className='h-5 w-5 text-green-600' />
+                        Catégories Nutrition (Ghida2ak)
+                      </CardTitle>
+                      <CardDescription>
+                        Catégories pour les conseils nutritionnels et recettes
+                      </CardDescription>
+                    </div>
+                    <Dialog open={isNutritionCatDialogOpen} onOpenChange={setIsNutritionCatDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button className='gap-2'>
+                          <Plus className='h-4 w-4' />
+                          Ajouter une catégorie
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className='sm:max-w-[500px]'>
+                        <DialogHeader>
+                          <DialogTitle>Ajouter une catégorie nutrition</DialogTitle>
+                          <DialogDescription>
+                            Créez une nouvelle catégorie pour Ghida2ak
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className='grid gap-4 py-4'>
+                          <div className='grid gap-2'>
+                            <Label htmlFor='nutrition-name-fr'>Nom (Français)</Label>
+                            <Input 
+                              id='nutrition-name-fr' 
+                              placeholder='Ex: Suppléments'
+                              value={nutritionFormData.name_fr}
+                              onChange={(e) => setNutritionFormData({ ...nutritionFormData, name_fr: e.target.value, slug: generateSlug(e.target.value) })}
+                            />
+                          </div>
+                          <div className='grid gap-2'>
+                            <Label htmlFor='nutrition-name-ar'>Nom (Arabe)</Label>
+                            <Input 
+                              id='nutrition-name-ar' 
+                              placeholder='Ex: المكملات الغذائية' 
+                              dir='rtl'
+                              value={nutritionFormData.name_ar}
+                              onChange={(e) => setNutritionFormData({ ...nutritionFormData, name_ar: e.target.value })}
+                            />
+                          </div>
+                          <div className='grid gap-2'>
+                            <Label htmlFor='nutrition-slug'>Slug (URL)</Label>
+                            <Input 
+                              id='nutrition-slug' 
+                              placeholder='Ex: supplements'
+                              value={nutritionFormData.slug}
+                              onChange={(e) => setNutritionFormData({ ...nutritionFormData, slug: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button variant='outline' onClick={() => setIsNutritionCatDialogOpen(false)}>
+                            Annuler
+                          </Button>
+                          <Button onClick={handleAddNutritionCategory}>
+                            Ajouter
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardHeader>
+                <CardContent className='space-y-4'>
+                  <div className='flex gap-2 items-end'>
+                    <div className='flex-1'>
+                      <Label className='text-xs mb-1 block'>Rechercher</Label>
+                      <Input 
+                        placeholder='Rechercher par nom ou slug...'
+                        value={nutritionSearch}
+                        onChange={(e) => setNutritionSearch(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <Label className='text-xs mb-1 block'>Statut</Label>
+                      <select 
+                        value={nutritionFilter} 
+                        onChange={(e) => setNutritionFilter(e.target.value as 'all' | 'active' | 'inactive')}
+                        className='h-10 px-3 py-2 border border-input rounded-md bg-background text-sm'
+                      >
+                        <option value='all'>Tous</option>
+                        <option value='active'>Actifs</option>
+                        <option value='inactive'>Inactifs</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className='rounded-md border'>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nom (FR)</TableHead>
+                          <TableHead>Nom (AR)</TableHead>
+                          <TableHead>Slug</TableHead>
+                          <TableHead>Statut</TableHead>
+                          <TableHead className='text-right'>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredNutrition.map((category) => (
+                          <TableRow key={category.id}>
+                            <TableCell className='font-medium'>{category.name_fr}</TableCell>
+                            <TableCell dir='rtl'>{category.name_ar}</TableCell>
+                            <TableCell>
+                              <code className='text-xs bg-muted px-2 py-1 rounded'>{category.slug}</code>
+                            </TableCell>
+                            <TableCell>
+                              {category.is_active ? (
+                                <Badge className='bg-green-500 hover:bg-green-600'>Actif</Badge>
+                              ) : (
+                                <Badge variant='secondary'>Inactif</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell className='text-right space-x-2'>
+                              <Button size='sm' variant='ghost' className='h-8 w-8 p-0' onClick={() => handleViewDetails(category)} title='Voir les détails'>
+                                <Eye className='h-4 w-4' />
+                              </Button>
+                              <Button size='sm' variant='ghost' className='h-8 w-8 p-0' onClick={() => handleToggleActive(category.id, 'nutrition')} title='Activer/Désactiver'>
+                                {category.is_active ? <ToggleRight className='h-4 w-4 text-green-600' /> : <ToggleLeft className='h-4 w-4 text-gray-400' />}
+                              </Button>
+                              <Button
+                                size='sm'
+                                variant='ghost'
+                                className='h-8 w-8 p-0 text-red-600 hover:text-red-700'
+                                onClick={() => handleDelete(category.id, 'nutrition')}
                                 title='Supprimer'
                               >
                                 <Trash2 className='h-4 w-4' />

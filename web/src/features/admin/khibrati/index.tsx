@@ -8,7 +8,31 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { BookOpen, Search, Check, X, Eye, FileEdit, Archive, Clock, CheckCircle2, XCircle } from 'lucide-react'
+import { 
+  BookOpen, 
+  Search, 
+  Check, 
+  X, 
+  Eye, 
+  FileEdit, 
+  Archive, 
+  Clock, 
+  CheckCircle2, 
+  XCircle,
+  MoreVertical,
+  ThumbsUp,
+  MessageSquare,
+  User,
+  Activity,
+  Calendar,
+  AlertCircle
+} from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { toast } from 'sonner'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -78,6 +102,7 @@ export function KhibratiManagement() {
   const [selectedPublication, setSelectedPublication] = useState<Publication | null>(null)
   const [rejectionReason, setRejectionReason] = useState('')
   const [modificationNotes, setModificationNotes] = useState('')
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
     fetchPublications()
@@ -119,14 +144,19 @@ export function KhibratiManagement() {
 
   const handleApprove = async (id: string) => {
     try {
+      setActionLoading(id)
       const { data } = await apiClient.instance.put(`/admin/khibrati/publications/${id}/approve`)
-
-      // Backend returns { message, publication }
-      setPublications((prev) => prev.map((p) => (p.id === id ? data.publication : p)))
-      toast.success('Publication approuvée avec succès')
+      const updatedPublication = data.publication
+      setPublications((prev) => prev.map((p) => (p.id === id ? updatedPublication : p)))
+      if (selectedPublication?.id === id) {
+        setSelectedPublication(updatedPublication)
+      }
+      toast.success('Publication approuvée et publiée')
     } catch (error) {
       console.error('Approve error:', error)
       toast.error("Erreur lors de l'approbation")
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -141,11 +171,12 @@ export function KhibratiManagement() {
         reason: rejectionReason,
       })
 
-      setPublications((prev) => prev.map((p) => (p.id === selectedPublication.id ? data.publication : p)))
+      const updatedPublication = data.publication
+      setPublications((prev) => prev.map((p) => (p.id === selectedPublication.id ? updatedPublication : p)))
       toast.success('Publication rejetée')
       setIsRejectDialogOpen(false)
       setRejectionReason('')
-      setSelectedPublication(null)
+      setSelectedPublication(updatedPublication)
     } catch (error) {
       console.error('Reject error:', error)
       toast.error('Erreur lors du rejet')
@@ -163,10 +194,12 @@ export function KhibratiManagement() {
         notes: modificationNotes,
       })
 
-      setPublications((prev) => prev.map((p) => (p.id === selectedPublication.id ? data.publication : p)))
+      const updatedPublication = data.publication
+      setPublications((prev) => prev.map((p) => (p.id === selectedPublication.id ? updatedPublication : p)))
       toast.success('Demande de modification envoyée')
       setIsModifyDialogOpen(false)
       setModificationNotes('')
+      setSelectedPublication(updatedPublication)
     } catch (error) {
       console.error('Request modifications error:', error)
       toast.error('Erreur lors de la demande de modifications')
@@ -350,7 +383,6 @@ export function KhibratiManagement() {
                       <TableHead>Titre</TableHead>
                       <TableHead>Auteur</TableHead>
                       <TableHead>Spécialité</TableHead>
-                      <TableHead>Badge</TableHead>
                       <TableHead>Statut</TableHead>
                       <TableHead>Date de soumission</TableHead>
                       <TableHead className='text-right'>Actions</TableHead>
@@ -371,83 +403,123 @@ export function KhibratiManagement() {
                       </TableRow>
                     ) : (
                       filteredPublications.map((pub) => (
-                        <TableRow key={pub.id}>
-                          <TableCell className='font-medium max-w-md'>{pub.title}</TableCell>
+                        <TableRow 
+                          key={pub.id}
+                          className='hover:bg-muted/50 transition-colors cursor-pointer group'
+                          onClick={() => {
+                            setSelectedPublication(pub)
+                            setIsViewDialogOpen(true)
+                          }}
+                        >
+                          <TableCell className='font-medium max-w-sm'>
+                            <div className='truncate group-hover:text-primary transition-colors'>
+                              {pub.title}
+                            </div>
+                          </TableCell>
                           <TableCell>
                             <div className='flex items-center gap-2'>
-                              {pub.author?.avatar_url && (
-                                <img src={pub.author.avatar_url} alt='' className='w-8 h-8 rounded-full object-cover' />
+                              {pub.author?.avatar_url ? (
+                                <img src={pub.author.avatar_url} alt='' className='w-7 h-7 rounded-full object-cover border border-slate-100 shadow-sm' />
+                              ) : (
+                                <div className='w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400'>
+                                  {pub.author?.full_name?.charAt(0)}
+                                </div>
                               )}
-                              <span>{pub.author?.full_name}</span>
+                              <span className='text-sm'>{pub.author?.full_name}</span>
                             </div>
                           </TableCell>
                           <TableCell>
                             {pub.specialty ? (
-                              <Badge variant='outline'>{pub.specialty.name_fr}</Badge>
-                            ) : (
-                              <span className='text-muted-foreground text-sm'>N/A</span>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {pub.author && (
-                              <Badge variant='secondary' className='gap-1'>
-                                <CheckCircle2 className='h-3 w-3' />
-                                Vérifié
+                              <Badge variant='outline' className='bg-slate-50 border-slate-200 text-slate-600 font-normal'>
+                                {pub.specialty.name_fr}
                               </Badge>
+                            ) : (
+                              <span className='text-muted-foreground text-xs italic'>N/A</span>
                             )}
                           </TableCell>
                           <TableCell>{getStatusBadge(pub.status)}</TableCell>
-                          <TableCell>{new Date(pub.created_at).toLocaleDateString('fr-FR')}</TableCell>
-                          <TableCell className='text-right'>
-                            <div className='flex items-center justify-end gap-2'>
-                              <Button
-                                size='sm'
-                                variant='ghost'
-                                className='h-8 w-8 p-0'
-                                onClick={() => {
-                                  setSelectedPublication(pub)
-                                  setIsViewDialogOpen(true)
-                                }}
-                              >
-                                <Eye className='h-4 w-4' />
-                              </Button>
-                              {pub.status === 'en_attente' && (
-                                <>
-                                  <Button
-                                    size='sm'
-                                    variant='outline'
-                                    className='h-8 gap-1 text-green-600 hover:text-green-700 hover:bg-green-50'
-                                    onClick={() => handleApprove(pub.id)}
-                                  >
-                                    <Check className='h-3 w-3' />
-                                    Approuver
-                                  </Button>
-                                  <Button
-                                    size='sm'
-                                    variant='outline'
-                                    className='h-8 gap-1 text-orange-600 hover:text-orange-700 hover:bg-orange-50'
-                                    onClick={() => {
-                                      setSelectedPublication(pub)
-                                      setIsModifyDialogOpen(true)
-                                    }}
-                                  >
-                                    <FileEdit className='h-3 w-3' />
-                                    Modifier
-                                  </Button>
-                                  <Button
-                                    size='sm'
-                                    variant='outline'
-                                    className='h-8 gap-1 text-red-600 hover:text-red-700 hover:bg-red-50'
-                                    onClick={() => {
-                                      setSelectedPublication(pub)
-                                      setIsRejectDialogOpen(true)
-                                    }}
-                                  >
-                                    <X className='h-3 w-3' />
-                                    Rejeter
-                                  </Button>
-                                </>
-                              )}
+                          <TableCell className='text-slate-500 text-sm'>
+                            {new Date(pub.created_at).toLocaleDateString('fr-FR')}
+                          </TableCell>
+                          <TableCell className='text-right' onClick={(e) => e.stopPropagation()}>
+                            <div className='flex items-center justify-end gap-1'>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size='icon'
+                                      variant='ghost'
+                                      className='h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50'
+                                      onClick={() => {
+                                        setSelectedPublication(pub)
+                                        setIsViewDialogOpen(true)
+                                      }}
+                                    >
+                                      <Eye className='h-4 w-4' />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Voir les détails</TooltipContent>
+                                </Tooltip>
+
+                                {['en_attente', 'en_revision', 'modifications_demandees', 'rejetee'].includes(pub.status) && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size='icon'
+                                        variant='ghost'
+                                        disabled={actionLoading === pub.id}
+                                        className='h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50'
+                                        onClick={() => handleApprove(pub.id)}
+                                      >
+                                        {actionLoading === pub.id ? (
+                                          <div className='h-3 w-3 animate-spin rounded-full border-2 border-green-600 border-t-transparent' />
+                                        ) : (
+                                          <Check className='h-4 w-4' />
+                                        )}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Approuver</TooltipContent>
+                                  </Tooltip>
+                                )}
+
+                                {['en_attente', 'en_revision', 'modifications_demandees'].includes(pub.status) && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size='icon'
+                                        variant='ghost'
+                                        className='h-8 w-8 text-orange-600 hover:text-orange-700 hover:bg-orange-50'
+                                        onClick={() => {
+                                          setSelectedPublication(pub)
+                                          setIsModifyDialogOpen(true)
+                                        }}
+                                      >
+                                        <FileEdit className='h-4 w-4' />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Demander modifications</TooltipContent>
+                                  </Tooltip>
+                                )}
+
+                                {pub.status !== 'rejetee' && pub.status !== 'archivee' && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size='icon'
+                                        variant='ghost'
+                                        className='h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50'
+                                        onClick={() => {
+                                          setSelectedPublication(pub)
+                                          setIsRejectDialogOpen(true)
+                                        }}
+                                      >
+                                        <X className='h-4 w-4' />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Rejeter</TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </TooltipProvider>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -463,73 +535,139 @@ export function KhibratiManagement() {
 
       {/* View Publication Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className='sm:max-w-[700px] max-h-[90vh] overflow-y-auto'>
-          <DialogHeader>
-            <DialogTitle>Détails de la publication</DialogTitle>
-            <DialogDescription>Informations complètes sur la publication</DialogDescription>
-          </DialogHeader>
-          {selectedPublication && (
-            <div className='space-y-4'>
-              <div>
-                <Label className='text-sm font-semibold'>Titre</Label>
-                <p className='text-sm mt-1'>{selectedPublication.title}</p>
+        <DialogContent className='max-w-2xl max-h-[92vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl rounded-2xl'>
+          <div className='bg-slate-900 p-6 text-white shrink-0 relative overflow-hidden'>
+            <div className='absolute top-0 right-0 p-8 opacity-10 pointer-events-none'>
+               <BookOpen className='w-32 h-32' />
+            </div>
+            <div className='relative z-10'>
+              <div className='flex items-center gap-2 mb-2'>
+                {selectedPublication && getStatusBadge(selectedPublication.status)}
+                {selectedPublication?.specialty && (
+                   <Badge variant='outline' className='text-white/70 border-white/20 uppercase text-[10px] tracking-widest'>
+                      {selectedPublication.specialty.name_fr}
+                   </Badge>
+                )}
               </div>
-              <div>
-                <Label className='text-sm font-semibold'>Auteur</Label>
-                <div className='flex items-center gap-2 mt-1'>
-                  {selectedPublication.author?.avatar_url && (
-                    <img src={selectedPublication.author.avatar_url} alt='' className='w-10 h-10 rounded-full object-cover' />
-                  )}
-                  <div>
-                    <p className='text-sm font-medium'>{selectedPublication.author?.full_name}</p>
-                    <p className='text-xs text-muted-foreground'>{selectedPublication.author?.email}</p>
+              <DialogTitle className='text-xl md:text-2xl font-bold leading-tight'>
+                {selectedPublication?.title}
+              </DialogTitle>
+            </div>
+          </div>
+
+          <div className='flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar'>
+            {/* Author Section */}
+            <div className='flex items-center justify-between bg-slate-50 p-4 rounded-xl border border-slate-100'>
+              <div className='flex items-center gap-3'>
+                {selectedPublication?.author?.avatar_url ? (
+                  <img src={selectedPublication.author.avatar_url} alt='' className='w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm' />
+                ) : (
+                  <div className='w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-lg font-bold text-slate-400'>
+                    {selectedPublication?.author?.full_name?.charAt(0)}
                   </div>
+                )}
+                <div>
+                  <h4 className='font-bold text-slate-900 leading-none mb-1'>{selectedPublication?.author?.full_name}</h4>
+                  <p className='text-xs text-slate-500 flex items-center gap-1'><Clock className='w-3 h-3' /> Soumis le {selectedPublication && new Date(selectedPublication.created_at).toLocaleDateString('fr-FR')}</p>
                 </div>
               </div>
-              <div>
-                <Label className='text-sm font-semibold'>Spécialité</Label>
-                <p className='text-sm mt-1'>{selectedPublication.specialty?.name_fr || 'N/A'}</p>
-              </div>
-              <div>
-                <Label className='text-sm font-semibold'>Contenu</Label>
-                <div className='text-sm mt-1 p-3 bg-muted rounded-md max-h-60 overflow-y-auto'>
-                  {selectedPublication.content}
-                </div>
-              </div>
-              {selectedPublication.publication_references && (
-                <div>
-                  <Label className='text-sm font-semibold'>Références</Label>
-                  <p className='text-sm mt-1'>{selectedPublication.publication_references}</p>
-                </div>
-              )}
-              {selectedPublication.rejection_reason && (
-                <div>
-                  <Label className='text-sm font-semibold text-red-600'>Raison du rejet</Label>
-                  <p className='text-sm mt-1 text-red-600'>{selectedPublication.rejection_reason}</p>
-                </div>
-              )}
-              {selectedPublication.modification_notes && (
-                <div>
-                  <Label className='text-sm font-semibold text-orange-600'>Notes de modification</Label>
-                  <p className='text-sm mt-1 text-orange-600'>{selectedPublication.modification_notes}</p>
-                </div>
-              )}
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <Label className='text-sm font-semibold'>Statut</Label>
-                  <div className='mt-1'>{getStatusBadge(selectedPublication.status)}</div>
-                </div>
-                <div>
-                  <Label className='text-sm font-semibold'>Date de soumission</Label>
-                  <p className='text-sm mt-1'>{new Date(selectedPublication.created_at).toLocaleDateString('fr-FR')}</p>
+              <div className='text-right'>
+                <p className='text-[10px] font-black uppercase tracking-wider text-slate-400 mb-1'>Vues</p>
+                <div className='flex items-center gap-1 text-slate-900 font-bold justify-end'>
+                   <Eye className='w-4 h-4' /> {selectedPublication?.views_count || 0}
                 </div>
               </div>
             </div>
-          )}
-          <DialogFooter>
-            <Button variant='outline' onClick={() => setIsViewDialogOpen(false)}>
-              Fermer
-            </Button>
+
+            {/* Content Section */}
+            <div className='space-y-3'>
+              <h3 className='text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2'>
+                <FileEdit className='h-4 w-4' /> Contenu de la publication
+              </h3>
+              <div className='text-slate-700 text-sm leading-relaxed p-4 bg-white rounded-xl border border-slate-100 whitespace-pre-wrap max-h-[300px] overflow-y-auto'>
+                {selectedPublication?.content || 'Aucun contenu.'}
+              </div>
+            </div>
+
+            {/* Meta Info Grid */}
+            <div className='grid grid-cols-2 gap-4'>
+               {selectedPublication?.publication_references && (
+                  <div className='space-y-2'>
+                    <h3 className='text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2'>
+                      <Archive className='h-4 w-4' /> Références
+                    </h3>
+                    <p className='text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100 leading-snug'>
+                       {selectedPublication.publication_references}
+                    </p>
+                  </div>
+               )}
+               {selectedPublication?.rejection_reason && (
+                  <div className='space-y-2'>
+                    <h3 className='text-xs font-black uppercase tracking-widest text-red-400 flex items-center gap-2'>
+                      <AlertCircle className='h-4 w-4' /> Raison du rejet
+                    </h3>
+                    <p className='text-xs text-red-600 bg-red-50 p-3 rounded-lg border border-red-100 leading-snug'>
+                       {selectedPublication.rejection_reason}
+                    </p>
+                  </div>
+               )}
+               {selectedPublication?.modification_notes && (
+                  <div className='space-y-2'>
+                    <h3 className='text-xs font-black uppercase tracking-widest text-orange-400 flex items-center gap-2'>
+                      <FileEdit className='h-4 w-4' /> Notes de modification
+                    </h3>
+                    <p className='text-xs text-orange-600 bg-orange-50 p-3 rounded-lg border border-orange-100 leading-snug'>
+                       {selectedPublication.modification_notes}
+                    </p>
+                  </div>
+               )}
+            </div>
+          </div>
+
+          <DialogFooter className='p-4 border-t bg-slate-50 flex flex-wrap items-center justify-between gap-2 shrink-0'>
+            <div className='flex items-center gap-2'>
+              {['en_attente', 'en_revision', 'modifications_demandees'].includes(selectedPublication?.status || '') ? (
+                <>
+                  <Button 
+                    variant='outline' 
+                    size='sm'
+                    className='rounded-full text-red-600 hover:text-red-700 border-red-100 hover:bg-red-50 h-9 px-4'
+                    onClick={() => setIsRejectDialogOpen(true)}
+                  >
+                    Rejeter
+                  </Button>
+                  <Button 
+                    variant='outline' 
+                    size='sm'
+                    className='rounded-full text-orange-600 hover:text-orange-700 border-orange-100 hover:bg-orange-50 h-9 px-4'
+                    onClick={() => setIsModifyDialogOpen(true)}
+                  >
+                    Modifications
+                  </Button>
+                </>
+              ) : null}
+            </div>
+
+            <div className='flex items-center gap-2'>
+              {['en_attente', 'en_revision', 'modifications_demandees', 'rejetee'].includes(selectedPublication?.status || '') && (
+                <Button 
+                  size='sm'
+                  className='rounded-full bg-emerald-600 hover:bg-emerald-700 h-9 px-6 shadow-md shadow-emerald-100'
+                  onClick={() => selectedPublication && handleApprove(selectedPublication.id)}
+                  disabled={actionLoading === selectedPublication?.id}
+                >
+                  {actionLoading === selectedPublication?.id ? (
+                    <div className='h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white mr-2' />
+                  ) : (
+                    <Check className='h-4 w-4 mr-2' />
+                  )}
+                  {selectedPublication?.status === 'rejetee' ? 'Ré-approuver' : 'Approuver'}
+                </Button>
+              )}
+              <Button variant='ghost' size='sm' onClick={() => setIsViewDialogOpen(false)} className='rounded-full h-9 px-4 text-slate-500'>
+                Fermer
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

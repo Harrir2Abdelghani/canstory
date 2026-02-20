@@ -12,13 +12,16 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import AnimatedBackground from '../../components/AnimatedBackground';
 import MyPressable from '../../components/MyPressable';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const EditProfileScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const { user, updateProfile } = useAuth();
+  const { t } = useLanguage();
   
   const [fullName, setFullName] = useState(user?.full_name || '');
   const [wilaya, setWilaya] = useState(user?.wilaya || '');
@@ -28,15 +31,15 @@ const EditProfileScreen: React.FC = () => {
 
   const handleSave = async () => {
     if (!fullName.trim()) {
-      Alert.alert('Erreur', 'Le nom complet est requis');
+      Alert.alert(t('error') || 'Erreur', t('error_name_required') || 'Le nom complet est requis');
       return;
     }
     if (!wilaya.trim()) {
-      Alert.alert('Erreur', 'La wilaya est requise');
+      Alert.alert(t('error') || 'Erreur', t('error_wilaya_required') || 'La wilaya est requise');
       return;
     }
     if (!commune.trim()) {
-      Alert.alert('Erreur', 'La commune est requise');
+      Alert.alert(t('error') || 'Erreur', t('error_commune_required') || 'La commune est requise');
       return;
     }
 
@@ -50,9 +53,9 @@ const EditProfileScreen: React.FC = () => {
     setLoading(false);
 
     if (error) {
-      Alert.alert('Erreur', error.message);
+      Alert.alert(t('error') || 'Erreur', error.message);
     } else {
-      Alert.alert('Succès', 'Profil mis à jour avec succès', [
+      Alert.alert(t('success') || 'Succès', t('profile_updated') || 'Profil mis à jour avec succès', [
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     }
@@ -65,11 +68,11 @@ const EditProfileScreen: React.FC = () => {
       </View>
       
       <View style={[styles.header, { paddingTop: insets.top }]}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backText}>← Retour</Text>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="arrow-back" size={24} color="#7b1fa2" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Modifier le profil</Text>
-        <View style={{ width: 80 }} />
+        <Text style={styles.headerTitle}>{t('edit_profile_title') || 'Modifier le profil'}</Text>
+        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView
@@ -79,53 +82,53 @@ const EditProfileScreen: React.FC = () => {
       >
         <View style={styles.card}>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nom complet *</Text>
+            <Text style={styles.label}>{t('full_name_label') || 'Nom complet'} *</Text>
             <TextInput
               style={styles.input}
               value={fullName}
               onChangeText={setFullName}
-              placeholder="Votre nom complet"
+              placeholder={t('full_name_label') || "Votre nom complet"}
               placeholderTextColor="#999"
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Wilaya *</Text>
+            <Text style={styles.label}>{t('wilaya_label') || 'Wilaya'} *</Text>
             <TextInput
               style={styles.input}
               value={wilaya}
               onChangeText={setWilaya}
-              placeholder="Votre wilaya"
+              placeholder={t('wilaya_label') || "Votre wilaya"}
               placeholderTextColor="#999"
             />
           </View>
-
+ 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Commune *</Text>
+            <Text style={styles.label}>{t('commune_label') || 'Commune'} *</Text>
             <TextInput
               style={styles.input}
               value={commune}
               onChangeText={setCommune}
-              placeholder="Votre commune"
+              placeholder={t('commune_label') || "Votre commune"}
               placeholderTextColor="#999"
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Téléphone</Text>
+            <Text style={styles.label}>{t('phone_label') || 'Téléphone'}</Text>
             <TextInput
               style={styles.input}
               value={phone}
               onChangeText={setPhone}
-              placeholder="Numéro de téléphone"
+              placeholder={t('phone_label') || "Numéro de téléphone"}
               placeholderTextColor="#999"
               keyboardType="phone-pad"
             />
           </View>
-
-          <Text style={styles.note}>* Champs obligatoires</Text>
+ 
+          <Text style={styles.note}>{t('required_fields') || '* Champs obligatoires'}</Text>
         </View>
-
+ 
         <MyPressable
           style={[styles.saveButton, loading && styles.saveButtonDisabled]}
           onPress={handleSave}
@@ -134,7 +137,7 @@ const EditProfileScreen: React.FC = () => {
           {loading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text style={styles.saveButtonText}>Enregistrer</Text>
+            <Text style={styles.saveButtonText}>{t('save') || 'Enregistrer'}</Text>
           )}
         </MyPressable>
       </ScrollView>

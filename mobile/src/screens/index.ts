@@ -4,3 +4,6 @@ export { default as ForgotPasswordScreen } from './ForgotPasswordScreen';
 export { default as ResetPasswordScreen } from './ResetPasswordScreen';
 export { default as WelcomeBackScreen } from './WelcomeBackScreen';
 export { default as MainHomeScreen } from './MainHomeScreen';
+export { default as NotificationsScreen } from './app/NotificationsScreen';
+export { default as ProfileScreen } from './app/ProfileScreen';
+export { default as AboutScreen } from './app/AboutScreen';

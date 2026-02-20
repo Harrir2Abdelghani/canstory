@@ -8,13 +8,13 @@ export function SignIn() {
 
   return (
     <AuthLayout>
-      <Card className='border-none shadow-2xl backdrop-blur-sm bg-white/80 dark:bg-gray-900/80'>
-        <CardHeader className='space-y-3 pb-8'>
-          <CardTitle className='text-3xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-purple-600 bg-clip-text text-transparent dark:from-purple-400 dark:to-pink-400'>
-            Admin Sign In
+      <Card className='border-none shadow-2xl backdrop-blur-md bg-white/90 dark:bg-zinc-900/90'>
+        <CardHeader className='space-y-3 pb-8 text-center'>
+          <CardTitle className='text-3xl font-bold tracking-tight text-primary'>
+            Connexion Admin
           </CardTitle>
-          <CardDescription className='text-sm text-gray-600 dark:text-gray-400'>
-            Enter your credentials to access the admin dashboard
+          <CardDescription className='text-sm text-muted-foreground'>
+            Entrez vos identifiants pour accéder au tableau de bord
           </CardDescription>
         </CardHeader>
         <CardContent className='pb-8'>

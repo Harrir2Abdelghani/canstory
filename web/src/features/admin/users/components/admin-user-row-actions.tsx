@@ -25,7 +25,8 @@ export function AdminUserRowActions({ user }: AdminUserRowActionsProps) {
           size='sm'
           className='h-8 w-8 p-0 text-orange-600 hover:text-orange-700 hover:bg-orange-100/20'
           disabled={isSelf}
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation()
             if (isSelf) return
             setSuspendDialogOpen(true)
             setEditingUser(user)
@@ -40,7 +41,8 @@ export function AdminUserRowActions({ user }: AdminUserRowActionsProps) {
           size='sm'
           className='h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-100/20'
           disabled={isSelf}
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation()
             if (isSelf) return
             setSuspendDialogOpen(true)
             setEditingUser(user)
@@ -50,21 +52,22 @@ export function AdminUserRowActions({ user }: AdminUserRowActionsProps) {
           <Power className='h-4 w-4' />
         </Button>
       )}
-
-      <Button
-        variant='ghost'
-        size='sm'
-        className='h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10'
-        disabled={isSelf}
-        onClick={() => {
-          if (isSelf) return
-          setDeleteDialogOpen(true)
-          setEditingUser(user)
-        }}
-        title={isSelf ? selfActionMessage : 'Supprimer'}
-      >
-        <Trash2 className='h-4 w-4' />
-      </Button>
+ 
+       <Button
+         variant='ghost'
+         size='sm'
+         className='h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10'
+         disabled={isSelf}
+         onClick={(e) => {
+           e.stopPropagation()
+           if (isSelf) return
+           setDeleteDialogOpen(true)
+           setEditingUser(user)
+         }}
+         title={isSelf ? selfActionMessage : 'Supprimer'}
+       >
+         <Trash2 className='h-4 w-4' />
+       </Button>
     </div>
   )
 }

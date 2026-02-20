@@ -104,21 +104,23 @@
   }
 }
 
-@layer utilities {
-  @keyframes accordion-down {
-    from {
-      height: 0;
-    }
-    to {
-      height: var(--radix-accordion-content-height);
-    }
+@utility custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
   }
-  @keyframes accordion-up {
-    from {
-      height: var(--radix-accordion-content-height);
-    }
-    to {
-      height: 0;
-    }
+  &::-webkit-scrollbar-track {
+    @apply bg-transparent;
   }
+  &::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 rounded-full hover:bg-muted-foreground/30 transition-colors;
+  }
+}
+
+@utility glass-card {
+  @apply bg-background/60 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-xl;
+}
+
+@layer base {
+  /* Existing base styles... */
 }

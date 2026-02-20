@@ -1,120 +1,83 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet, View, Text } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+
 import HomeScreen from '../screens/app/HomeScreen';
 import DirectoryScreen from '../screens/app/DirectoryScreen';
-import CommunityScreen from '../screens/app/CommunityScreen';
-import NotificationsScreen from '../screens/app/NotificationsScreen';
-import ProfileScreen from '../screens/app/ProfileScreen';
-import AboutScreen from '../screens/app/AboutScreen';
+import I3lamScreen from '../screens/app/I3lamScreen';
+import Ghida2akScreen from '../screens/app/Ghida2akScreen';
+import Nassa2ihScreen from '../screens/app/Nassa2ihScreen';
+import MainHeader from '../components/MainHeader';
 
 const Tab = createBottomTabNavigator();
-
-const TabIcon: React.FC<{ icon: string; focused: boolean }> = ({
-  icon,
-  focused,
-}) => (
-  <View style={[styles.tabIconContainer, focused && styles.tabIconContainerFocused]}>
-    <Text style={[styles.tabIcon, focused && styles.tabIconFocused]}>{icon}</Text>
-  </View>
-);
 
 export default function BottomTabNavigator() {
   return (
     <Tab.Navigator
-      screenOptions={{
-        headerShown: false,
+      screenOptions={({ route }) => ({
+        header: () => <MainHeader />,
         tabBarStyle: styles.tabBar,
         tabBarShowLabel: false,
-        tabBarActiveTintColor: '#7b1fa2',
-        tabBarInactiveTintColor: '#999',
-      }}
+        headerTransparent: false,
+        tabBarIcon: ({ focused }) => {
+          let iconName: string = '';
+
+          if (route.name === 'HomeTab') iconName = 'home';
+          if (route.name === 'I3lamTab') iconName = 'megaphone';
+          if (route.name === 'Ghida2akTab') iconName = 'nutrition';
+          if (route.name === 'Nassa2ihTab') iconName = 'bulb';
+          if (route.name === 'DirectoryTab') iconName = 'list';
+
+          return (
+            <View
+              style={[
+                styles.iconContainer,
+                focused && styles.activeIconContainer,
+              ]}
+            >
+              <Ionicons
+                name={iconName}
+                size={focused ? 22 : 22}
+                color={focused ? '#7b1fa2' : 'white'}
+              />
+            </View>
+          );
+        },
+      })}
     >
-      <Tab.Screen
-        name="HomeTab"
-        component={HomeScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon icon="🏠" focused={focused} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="DirectoryTab"
-        component={DirectoryScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon icon="📋" focused={focused} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="CommunityTab"
-        component={CommunityScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon icon="💬" focused={focused} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="AboutTab"
-        component={AboutScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon icon="ℹ️" focused={focused} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="NotificationsTab"
-        component={NotificationsScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon icon="🔔" focused={focused} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="ProfileTab"
-        component={ProfileScreen}
-        options={{
-          tabBarIcon: ({ focused }) => (
-            <TabIcon icon="👤" focused={focused} />
-          ),
-        }}
-      />
+      <Tab.Screen name="HomeTab" component={HomeScreen} />
+      <Tab.Screen name="I3lamTab" component={I3lamScreen} />
+      <Tab.Screen name="Ghida2akTab" component={Ghida2akScreen} />
+      <Tab.Screen name="Nassa2ihTab" component={Nassa2ihScreen} />
+      <Tab.Screen name="DirectoryTab" component={DirectoryScreen} />
     </Tab.Navigator>
   );
 }
 
 const styles = StyleSheet.create({
   tabBar: {
-    backgroundColor: 'white',
+    backgroundColor: '#7b1fa2',
     borderTopWidth: 0,
-    height: 65,
-    paddingBottom: 10,
-    paddingTop: 10,
-    elevation: 20,
-    shadowColor: '#7b1fa2',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    height: 55,
+    elevation: 0,
+    shadowOpacity: 0,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
-  tabIconContainer: {
+
+  iconContainer: {
+    width: 35,
+    height: 35,
+    borderRadius: 22.5,
+    marginTop: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
   },
-  tabIconContainerFocused: {
-    backgroundColor: '#f3e5f5',
-  },
-  tabIcon: {
-    fontSize: 26,
-  },
-  tabIconFocused: {
-    transform: [{ scale: 1.15 }],
+
+  activeIconContainer: {
+    backgroundColor: 'white',
   },
 });

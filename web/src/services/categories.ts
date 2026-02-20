@@ -51,6 +51,12 @@ export const categoriesService = {
   },
 
   async deleteSpecialty(id: string): Promise<void> {
+    // First, set specialty_id to null in khibrati_publications to avoid FK error
+    await supabase
+      .from('khibrati_publications')
+      .update({ specialty_id: null })
+      .eq('specialty_id', id)
+
     const { error } = await supabase
       .from('specialties')
       .delete()
@@ -117,6 +123,12 @@ export const categoriesService = {
   },
 
   async deleteArticleCategory(id: string): Promise<void> {
+    // First, set category_id to null in articles to avoid FK error
+    await supabase
+      .from('articles')
+      .update({ category_id: null })
+      .eq('category_id', id)
+
     const { error } = await supabase
       .from('article_categories')
       .delete()
@@ -183,6 +195,12 @@ export const categoriesService = {
   },
 
   async deleteGuideCategory(id: string): Promise<void> {
+    // First, set category_id to null in guides to avoid FK error
+    await supabase
+      .from('guides')
+      .update({ category_id: null })
+      .eq('category_id', id)
+
     const { error } = await supabase
       .from('guide_categories')
       .delete()
@@ -206,6 +224,66 @@ export const categoriesService = {
   async toggleGuideCategoryStatus(id: string, is_active: boolean): Promise<Category> {
     const { data, error } = await supabase
       .from('guide_categories')
+      .update({ is_active })
+      .eq('id', id)
+      .select()
+    
+    if (error) throw error
+    return data?.[0] || { id, is_active } as Category
+  },
+
+  // Nutrition Categories
+  async getNutritionCategories(): Promise<Category[]> {
+    const { data, error } = await supabase
+      .from('nutrition_categories')
+      .select('*')
+      .order('name_fr', { ascending: true })
+    
+    if (error) throw error
+    return data || []
+  },
+
+  async createNutritionCategory(category: Omit<Category, 'id' | 'created_at' | 'updated_at'>): Promise<Category> {
+    const { data, error } = await supabase
+      .from('nutrition_categories')
+      .insert([category])
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  async updateNutritionCategory(id: string, category: Partial<Category>): Promise<Category> {
+    const { data, error } = await supabase
+      .from('nutrition_categories')
+      .update(category)
+      .eq('id', id)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  async deleteNutritionCategory(id: string): Promise<void> {
+    // First, set category_id to null in nutrition_guides to avoid FK error
+    await supabase
+      .from('nutrition_guides')
+      .update({ category_id: null })
+      .eq('category_id', id)
+
+    const { error } = await supabase
+      .from('nutrition_categories')
+      .delete()
+      .eq('id', id)
+    
+    if (error) throw error
+  },
+
+  async toggleNutritionCategoryStatus(id: string, is_active: boolean): Promise<Category> {
+    const { data, error } = await supabase
+      .from('nutrition_categories')
       .update({ is_active })
       .eq('id', id)
       .select()

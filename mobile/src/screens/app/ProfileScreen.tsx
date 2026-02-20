@@ -15,12 +15,15 @@ import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import AnimatedBackground from '../../components/AnimatedBackground';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { supabase } from '../../lib/supabase';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const ProfileScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const { user, profile, signOut, updateProfile } = useAuth();
+  const { t } = useLanguage();
   const [fadeAnim] = useState(new Animated.Value(0));
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
@@ -34,12 +37,12 @@ const ProfileScreen: React.FC = () => {
 
   const handleSignOut = () => {
     Alert.alert(
-      'Déconnexion',
-      'Êtes-vous sûr de vouloir vous déconnecter?',
+      t('sign_out') || 'Déconnexion',
+      t('sign_out_confirm') || 'Êtes-vous sûr de vouloir vous déconnecter?',
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('cancel') || 'Annuler', style: 'cancel' },
         {
-          text: 'Déconnexion',
+          text: t('sign_out') || 'Déconnexion',
           style: 'destructive',
           onPress: async () => {
             await signOut();
@@ -112,10 +115,9 @@ const ProfileScreen: React.FC = () => {
       });
 
       if (updateError) throw updateError;
-
-      Alert.alert('Succès', 'Photo de profil mise à jour');
+      Alert.alert(t('success') || 'Succès', t('avatar_updated') || 'Photo de profil mise à jour');
     } catch (error: any) {
-      Alert.alert('Erreur', error.message || 'Impossible de télécharger la photo');
+      Alert.alert(t('error') || 'Erreur', error.message || 'Impossible de télécharger la photo');
     } finally {
       setUploadingAvatar(false);
     }
@@ -127,7 +129,7 @@ const ProfileScreen: React.FC = () => {
         contentContainerStyle={{ flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
+        <View style={[styles.container, { paddingTop: 60 }]}>
           <Animated.View style={{ opacity: fadeAnim }}>
             <View style={styles.header}>
               <TouchableOpacity onPress={handleAvatarUpload} style={styles.avatarContainer}>
@@ -145,7 +147,7 @@ const ProfileScreen: React.FC = () => {
                   </View>
                 )}
                 <View style={styles.editBadge}>
-                  <Text style={styles.editBadgeText}>✏️</Text>
+                  <Ionicons name="camera-outline" size={18} color="#7b1fa2" />
                 </View>
               </TouchableOpacity>
               <Text style={styles.userName}>{user?.full_name || 'Utilisateur'}</Text>
@@ -156,7 +158,7 @@ const ProfileScreen: React.FC = () => {
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Informations du compte</Text>
+              <Text style={styles.sectionTitle}>{t('account_info') || 'Informations du compte'}</Text>
 
               <View style={styles.infoCard}>
                 <View style={styles.infoRow}>
@@ -180,9 +182,10 @@ const ProfileScreen: React.FC = () => {
                 </View>
                 <View style={styles.divider} />
                 <View style={styles.infoRow}>
-                  <Text style={styles.infoLabel}>Langue</Text>
+                  <Text style={styles.infoLabel}>{t('lang_settings') || 'Langue'}</Text>
                   <Text style={styles.infoValue}>
-                    {user?.language === 'fr' ? 'Français' : user?.language === 'ar' ? 'العربية' : 'English'}
+                    {user?.language?.toUpperCase() === 'FR' ? 'Français' : 
+                     user?.language?.toUpperCase() === 'AR' ? 'العربية' : 'English'}
                   </Text>
                 </View>
               </View>
@@ -219,58 +222,80 @@ const ProfileScreen: React.FC = () => {
             )}
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Actions</Text>
+              <Text style={styles.sectionTitle}>{t('actions') || 'Actions'}</Text>
 
               <TouchableOpacity 
                 style={styles.actionButton}
                 onPress={() => navigation.navigate('EditProfile' as never)}
               >
-                <Text style={styles.actionIcon}>✏️</Text>
-                <Text style={styles.actionText}>Modifier le profil</Text>
-                <Text style={styles.actionArrow}>›</Text>
+                <View style={styles.actionIconBg}>
+                  <Ionicons name="person-outline" size={20} color="#7b1fa2" />
+                </View>
+                <Text style={styles.actionText}>{t('edit_profile') || 'Modifier le profil'}</Text>
+                <Ionicons name="chevron-forward" size={20} color="#ccc" />
               </TouchableOpacity>
 
               <TouchableOpacity 
                 style={styles.actionButton}
                 onPress={() => navigation.navigate('NotificationSettings' as never)}
               >
-                <Text style={styles.actionIcon}>🔔</Text>
-                <Text style={styles.actionText}>Paramètres de notification</Text>
-                <Text style={styles.actionArrow}>›</Text>
+                <View style={styles.actionIconBg}>
+                  <Ionicons name="notifications-outline" size={20} color="#7b1fa2" />
+                </View>
+                <Text style={styles.actionText}>{t('notif_settings') || 'Paramètres de notification'}</Text>
+                <Ionicons name="chevron-forward" size={20} color="#ccc" />
               </TouchableOpacity>
 
               <TouchableOpacity 
                 style={styles.actionButton}
                 onPress={() => navigation.navigate('LanguageSelection' as never)}
               >
-                <Text style={styles.actionIcon}>🌐</Text>
-                <Text style={styles.actionText}>Langue</Text>
-                <Text style={styles.actionArrow}>›</Text>
+                <View style={styles.actionIconBg}>
+                  <Ionicons name="globe-outline" size={20} color="#7b1fa2" />
+                </View>
+                <Text style={styles.actionText}>{t('lang_settings') || 'Langue'}</Text>
+                <Ionicons name="chevron-forward" size={20} color="#ccc" />
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.actionButton}>
-                <Text style={styles.actionIcon}>🔒</Text>
-                <Text style={styles.actionText}>Confidentialité</Text>
-                <Text style={styles.actionArrow}>›</Text>
+                <View style={styles.actionIconBg}>
+                  <Ionicons name="lock-closed-outline" size={20} color="#7b1fa2" />
+                </View>
+                <Text style={styles.actionText}>{t('privacy') || 'Confidentialité'}</Text>
+                <Ionicons name="chevron-forward" size={20} color="#ccc" />
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.actionButton}>
-                <Text style={styles.actionIcon}>❓</Text>
-                <Text style={styles.actionText}>Aide & Support</Text>
-                <Text style={styles.actionArrow}>›</Text>
+                <View style={styles.actionIconBg}>
+                  <Ionicons name="help-circle-outline" size={20} color="#7b1fa2" />
+                </View>
+                <Text style={styles.actionText}>{t('help_support') || 'Aide & Support'}</Text>
+                <Ionicons name="chevron-forward" size={20} color="#ccc" />
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity 
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('About' as never)}
+            >
+              <View style={styles.actionIconBg}>
+                <Ionicons name="information-circle-outline" size={20} color="#7b1fa2" />
+              </View>
+              <Text style={styles.actionText}>{t('about_app') || 'À propos de Canstory'}</Text>
+              <Ionicons name="chevron-forward" size={20} color="#ccc" />
+            </TouchableOpacity>
 
             <View style={styles.section}>
               <TouchableOpacity
                 style={styles.signOutButton}
                 onPress={handleSignOut}
               >
-                <Text style={styles.signOutText}>Se déconnecter</Text>
+                <Ionicons name="log-out-outline" size={22} color="white" style={{ marginRight: 8 }} />
+                <Text style={styles.signOutText}>{t('sign_out') || 'Se déconnecter'}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={styles.deleteButton}>
-                <Text style={styles.deleteText}>Supprimer mon compte</Text>
+                <Text style={styles.deleteText}>{t('delete_account') || 'Supprimer mon compte'}</Text>
               </TouchableOpacity>
             </View>
 
@@ -393,15 +418,25 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#f3e5f5',
+    borderColor: 'rgba(123, 31, 162, 0.1)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
   },
-  actionIcon: {
-    fontSize: 20,
+  actionIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#f3e5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginRight: 12,
   },
   actionText: {
@@ -410,17 +445,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
   },
-  actionArrow: {
-    fontSize: 24,
-    fontWeight: '300',
-    color: '#999',
-  },
   signOutButton: {
     backgroundColor: '#7b1fa2',
-    borderRadius: 12,
+    borderRadius: 16,
     paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 12,
+    marginTop: 10,
+    shadowColor: '#7b1fa2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   signOutText: {
     fontSize: 16,

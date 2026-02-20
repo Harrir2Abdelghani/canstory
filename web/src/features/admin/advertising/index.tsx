@@ -8,7 +8,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { Megaphone, Search, Eye, CheckCircle, XCircle, Clock, AlertTriangle, Filter, ExternalLink } from 'lucide-react'
+import { Megaphone, Search, Eye, CheckCircle, XCircle, Clock, AlertTriangle, Filter, ExternalLink, Calendar, Mail, Phone, User, Landmark, ShieldCheck, Check, FileText } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { toast } from 'sonner'
 import { Header } from '@/components/layout/header'
 import { Main } from '@/components/layout/main'
@@ -71,6 +77,7 @@ export function AdvertisingManagement() {
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false)
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
   const [rejectionReason, setRejectionReason] = useState('')
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
     fetchAdvertisements()
@@ -108,9 +115,8 @@ export function AdvertisingManagement() {
   }
 
   const handleApprove = async (id: string) => {
-    if (!confirm('Approuver cette demande publicitaire ?')) return
-
     try {
+      setActionLoading(id)
       await apiClient.instance.put(`/admin/advertisements/${id}/approve`)
 
       toast.success('Publicité approuvée')
@@ -120,6 +126,8 @@ export function AdvertisingManagement() {
     } catch (error) {
       console.error('Approve error:', error)
       toast.error('Erreur lors de l\'approbation')
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -147,9 +155,8 @@ export function AdvertisingManagement() {
   }
 
   const handleExpire = async (id: string) => {
-    if (!confirm('Marquer cette publicité comme expirée ?')) return
-
     try {
+      setActionLoading(id)
       await apiClient.instance.put(`/admin/advertisements/${id}/expire`)
 
       toast.success('Publicité marquée comme expirée')
@@ -159,6 +166,8 @@ export function AdvertisingManagement() {
     } catch (error) {
       console.error('Expire error:', error)
       toast.error('Erreur lors de l\'expiration')
+    } finally {
+      setActionLoading(null)
     }
   }
 
@@ -357,32 +366,111 @@ export function AdvertisingManagement() {
                       </TableRow>
                     ) : (
                       advertisements.map((ad) => (
-                        <TableRow key={ad.id}>
+                        <TableRow 
+                          key={ad.id}
+                          className='hover:bg-muted/50 transition-colors cursor-pointer group'
+                          onClick={() => handleViewDetails(ad)}
+                        >
                           <TableCell className='font-medium'>
                             <div className='flex items-center gap-2'>
-                              <Megaphone className='h-4 w-4 text-muted-foreground' />
-                              <div>
-                                <div>{ad.company_name}</div>
-                                <div className='text-xs text-muted-foreground'>{ad.contact_name}</div>
+                              <div className='h-8 w-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0'>
+                                <Megaphone className='h-4 w-4' />
+                              </div>
+                              <div className='truncate max-w-[200px]'>
+                                <div className='font-bold group-hover:text-primary transition-colors'>{ad.company_name}</div>
+                                <div className='text-[10px] text-muted-foreground uppercase tracking-wider font-semibold'>{ad.contact_name}</div>
                               </div>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant='outline'>{ad.ad_type}</Badge>
+                            <Badge variant='outline' className='bg-slate-50 border-slate-200 text-slate-600 font-normal uppercase text-[10px]'>
+                              {ad.ad_type}
+                            </Badge>
                           </TableCell>
-                          <TableCell>{ad.duration_days} jours</TableCell>
+                          <TableCell className='text-sm text-slate-500'>
+                            <div className='flex items-center gap-1'>
+                              <Clock className='h-3 w-3' />
+                              {ad.duration_days}j
+                            </div>
+                          </TableCell>
                           <TableCell>{getStatusBadge(ad)}</TableCell>
-                          <TableCell>{formatDate(ad.created_at)}</TableCell>
-                          <TableCell className='text-right'>
-                            <Button
-                              size='sm'
-                              variant='outline'
-                              className='h-8 gap-2'
-                              onClick={() => handleViewDetails(ad)}
-                            >
-                              <Eye className='h-4 w-4' />
-                              Voir
-                            </Button>
+                          <TableCell className='text-sm text-slate-500'>{formatDate(ad.created_at)}</TableCell>
+                          <TableCell className='text-right' onClick={(e) => e.stopPropagation()}>
+                            <div className='flex items-center justify-end gap-1'>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      size='icon'
+                                      variant='ghost'
+                                      className='h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50'
+                                      onClick={() => handleViewDetails(ad)}
+                                    >
+                                      <Eye className='h-4 w-4' />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Détails</TooltipContent>
+                                </Tooltip>
+
+                                {(ad.computed_status === 'pending' || ad.status === 'pending') && (
+                                  <>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          size='icon'
+                                          variant='ghost'
+                                          disabled={actionLoading === ad.id}
+                                          className='h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50'
+                                          onClick={() => handleApprove(ad.id)}
+                                        >
+                                          {actionLoading === ad.id ? (
+                                            <div className='h-3 w-3 animate-spin rounded-full border-2 border-green-600 border-t-transparent' />
+                                          ) : (
+                                            <Check className='h-4 w-4' />
+                                          )}
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Approuver</TooltipContent>
+                                    </Tooltip>
+
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          size='icon'
+                                          variant='ghost'
+                                          className='h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50'
+                                          onClick={() => openRejectDialog(ad)}
+                                        >
+                                          <XCircle className='h-4 w-4' />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>Rejeter</TooltipContent>
+                                    </Tooltip>
+                                  </>
+                                )}
+
+                                {ad.status === 'approved' && ad.is_active && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size='icon'
+                                        variant='ghost'
+                                        disabled={actionLoading === ad.id}
+                                        className='h-8 w-8 text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                                        onClick={() => handleExpire(ad.id)}
+                                      >
+                                        {actionLoading === ad.id ? (
+                                          <div className='h-3 w-3 animate-spin rounded-full border-2 border-slate-500 border-t-transparent' />
+                                        ) : (
+                                          <AlertTriangle className='h-4 w-4' />
+                                        )}
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Expirer</TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </TooltipProvider>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))
@@ -397,150 +485,159 @@ export function AdvertisingManagement() {
 
       {/* Detail Dialog */}
       <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
-        <DialogContent className='sm:max-w-[700px] max-h-[90vh] overflow-y-auto'>
-          <DialogHeader>
-            <DialogTitle>Détails de la demande publicitaire</DialogTitle>
-            <DialogDescription>
-              {selectedAd?.company_name}
-            </DialogDescription>
-          </DialogHeader>
-          {selectedAd && (
-            <div className='grid gap-4 py-4'>
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <Label className='text-sm font-medium'>Entreprise</Label>
-                  <p className='text-sm'>{selectedAd.company_name}</p>
-                </div>
-                <div>
-                  <Label className='text-sm font-medium'>Contact</Label>
-                  <p className='text-sm'>{selectedAd.contact_name}</p>
-                </div>
-              </div>
+        <DialogContent className='max-w-2xl max-h-[90vh] flex flex-col p-6 overflow-hidden rounded-2xl'>
+          {/* Simple Clean Header */}
+          <div className='flex items-center justify-between mb-4 pb-4 border-b shrink-0'>
+            <div className='space-y-1'>
+               <h2 className='text-2xl font-bold text-slate-900'>{selectedAd?.company_name}</h2>
+               <div className='flex items-center gap-2'>
+                  <Badge variant='outline' className='text-slate-500 border-slate-200 uppercase text-[10px] tracking-wider font-semibold bg-slate-50'>
+                    {selectedAd?.ad_type}
+                  </Badge>
+                  {selectedAd && getStatusBadge(selectedAd)}
+               </div>
+            </div>
+            <div className='h-12 w-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center'>
+               <Megaphone className='h-6 w-6' />
+            </div>
+          </div>
 
-              <div className='grid grid-cols-2 gap-4'>
-                <div>
-                  <Label className='text-sm font-medium'>Email</Label>
-                  <p className='text-sm'>{selectedAd.contact_email}</p>
-                </div>
-                <div>
-                  <Label className='text-sm font-medium'>Téléphone</Label>
-                  <p className='text-sm'>{selectedAd.contact_phone}</p>
-                </div>
-              </div>
-
-              <div className='grid grid-cols-3 gap-4'>
-                <div>
-                  <Label className='text-sm font-medium'>Type</Label>
-                  <p className='text-sm'>{selectedAd.ad_type}</p>
-                </div>
-                <div>
-                  <Label className='text-sm font-medium'>Durée</Label>
-                  <p className='text-sm'>{selectedAd.duration_days} jours</p>
-                </div>
-                <div>
-                  <Label className='text-sm font-medium'>Budget</Label>
-                  <p className='text-sm'>{formatCurrency(selectedAd.budget)}</p>
-                </div>
-              </div>
-
-              {selectedAd.start_date && selectedAd.end_date && (
-                <div className='grid grid-cols-2 gap-4'>
-                  <div>
-                    <Label className='text-sm font-medium'>Date de début</Label>
-                    <p className='text-sm'>{formatDate(selectedAd.start_date)}</p>
-                  </div>
-                  <div>
-                    <Label className='text-sm font-medium'>Date de fin</Label>
-                    <p className='text-sm'>{formatDate(selectedAd.end_date)}</p>
+          <div className='flex-1 overflow-y-auto space-y-8 pr-2 custom-scrollbar'>
+            {/* Essential Info Grid */}
+            <div className='grid grid-cols-2 gap-8'>
+              <div className='space-y-4'>
+                <div className='space-y-1'>
+                  <p className='text-[10px] font-black uppercase text-slate-400 tracking-wider'>Contact Responsable</p>
+                  <p className='text-sm font-bold text-slate-900'>{selectedAd?.contact_name}</p>
+                  <div className='space-y-1 pt-1'>
+                    <p className='text-xs text-slate-500 flex items-center gap-2'><Mail className='w-3 h-3' />{selectedAd?.contact_email}</p>
+                    <p className='text-xs text-slate-500 flex items-center gap-2'><Phone className='w-3 h-3' />{selectedAd?.contact_phone}</p>
                   </div>
                 </div>
-              )}
 
-              {selectedAd.target_audience && (
-                <div>
-                  <Label className='text-sm font-medium'>Audience cible</Label>
-                  <p className='text-sm'>{selectedAd.target_audience}</p>
-                </div>
-              )}
-
-              {selectedAd.description && (
-                <div>
-                  <Label className='text-sm font-medium'>Description</Label>
-                  <p className='text-sm'>{selectedAd.description}</p>
-                </div>
-              )}
-
-              {selectedAd.creative_assets && (
-                <div>
-                  <Label className='text-sm font-medium'>Ressources créatives</Label>
-                  {selectedAd.creative_assets.banner_url && (
-                    <div className='mt-2'>
-                      <a 
-                        href={selectedAd.creative_assets.banner_url} 
-                        target='_blank' 
-                        rel='noopener noreferrer'
-                        className='text-sm text-blue-600 hover:underline flex items-center gap-1'
-                      >
-                        <ExternalLink className='h-3 w-3' />
-                        Voir la bannière
-                      </a>
+                <div className='space-y-1'>
+                  <p className='text-[10px] font-black uppercase text-slate-400 tracking-wider'>Période de Diffusion</p>
+                  <div className='flex items-center gap-2 py-1'>
+                    <div className='px-2 py-1 bg-slate-100 rounded text-[11px] font-bold text-slate-600 flex items-center gap-1'>
+                      <Calendar className='w-3 h-3' /> {formatDate(selectedAd?.start_date || null)}
                     </div>
-                  )}
-                  {selectedAd.creative_assets.redirect_url && (
-                    <div className='mt-1'>
-                      <a 
-                        href={selectedAd.creative_assets.redirect_url} 
-                        target='_blank' 
-                        rel='noopener noreferrer'
-                        className='text-sm text-blue-600 hover:underline flex items-center gap-1'
-                      >
-                        <ExternalLink className='h-3 w-3' />
-                        URL de redirection
-                      </a>
+                    <span className='text-slate-300'>→</span>
+                    <div className='px-2 py-1 bg-slate-100 rounded text-[11px] font-bold text-slate-600'>
+                      {formatDate(selectedAd?.end_date || null)}
                     </div>
-                  )}
+                  </div>
+                  <p className='text-[10px] text-slate-400 italic'>Durée totale : {selectedAd?.duration_days} jours</p>
                 </div>
-              )}
-
-              <div>
-                <Label className='text-sm font-medium'>Statut</Label>
-                <div className='mt-1'>{getStatusBadge(selectedAd)}</div>
               </div>
 
-              {selectedAd.rejection_reason && (
-                <div>
-                  <Label className='text-sm font-medium text-red-600'>Raison du rejet</Label>
-                  <p className='text-sm'>{selectedAd.rejection_reason}</p>
+              <div className='space-y-4'>
+                <div className='space-y-1'>
+                  <p className='text-[10px] font-black uppercase text-slate-400 tracking-wider'>Budget de Campagne</p>
+                  <p className='text-xl font-black text-emerald-600'>{formatCurrency(selectedAd?.budget || 0)}</p>
+                </div>
+
+                <div className='space-y-1'>
+                  <p className='text-[10px] font-black uppercase text-slate-400 tracking-wider'>Audience Cible</p>
+                  <p className='text-sm font-medium text-slate-700 leading-snug'>
+                    {selectedAd?.target_audience || 'Non spécifiée'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content & Creative Assets */}
+            <div className='space-y-6 pt-2'>
+              {selectedAd?.description && (
+                <div className='space-y-2'>
+                  <p className='text-[10px] font-black uppercase text-slate-400 tracking-wider'>Description du contenu</p>
+                  <div className='p-4 bg-slate-50 rounded-xl border border-slate-100 text-sm text-slate-600 leading-relaxed italic'>
+                    "{selectedAd.description}"
+                  </div>
                 </div>
               )}
 
-              {selectedAd.reviewer && (
-                <div>
-                  <Label className='text-sm font-medium'>Examiné par</Label>
-                  <p className='text-sm'>{selectedAd.reviewer.full_name} le {formatDate(selectedAd.reviewed_at)}</p>
+              {selectedAd?.creative_assets && (
+                <div className='space-y-3'>
+                  <p className='text-[10px] font-black uppercase text-slate-400 tracking-wider'>Ressources pour Validation</p>
+                  <div className='flex flex-wrap gap-3'>
+                    {selectedAd.creative_assets.banner_url && (
+                      <Button asChild variant='outline' size='sm' className='rounded-full h-9 border-slate-200 bg-white hover:bg-slate-50 hover:text-primary transition-all shadow-sm'>
+                        <a href={selectedAd.creative_assets.banner_url} target='_blank' rel='noopener noreferrer' className='flex items-center gap-2'>
+                          <Eye className='w-4 h-4' /> Voir le visuel
+                        </a>
+                      </Button>
+                    )}
+                    {selectedAd.creative_assets.redirect_url && (
+                      <Button asChild variant='outline' size='sm' className='rounded-full h-9 border-slate-200 bg-white hover:bg-slate-50 hover:text-primary transition-all shadow-sm'>
+                        <a href={selectedAd.creative_assets.redirect_url} target='_blank' rel='noopener noreferrer' className='flex items-center gap-2'>
+                          <ExternalLink className='w-4 h-4' /> Destination (Clic)
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {selectedAd?.reviewer && (
+                <div className='flex items-center gap-2 py-3 px-4 bg-emerald-50/50 rounded-xl border border-emerald-100/50'>
+                  <ShieldCheck className='w-4 h-4 text-emerald-600' />
+                  <p className='text-xs text-emerald-800 font-medium'>
+                    Validé par <span className='font-bold'>{selectedAd.reviewer.full_name}</span> le {formatDate(selectedAd.reviewed_at)}
+                  </p>
+                </div>
+              )}
+
+              {selectedAd?.rejection_reason && (
+                <div className='flex items-center gap-2 py-3 px-4 bg-red-50 rounded-xl border border-red-100'>
+                  <AlertTriangle className='w-4 h-4 text-red-600' />
+                  <p className='text-xs text-red-800 font-medium'>
+                    <span className='font-bold'>Raison du rejet :</span> {selectedAd.rejection_reason}
+                  </p>
                 </div>
               )}
             </div>
-          )}
-          <DialogFooter>
-            {selectedAd?.status === 'pending' && (
-              <>
-                <Button variant='outline' onClick={() => openRejectDialog(selectedAd)}>
-                  <XCircle className='h-4 w-4 mr-2' />
-                  Rejeter
+          </div>
+
+          <DialogFooter className='mt-8 pt-4 border-t flex items-center justify-between gap-3 shrink-0'>
+            <div className='flex items-center gap-2'>
+              {(selectedAd?.status === 'pending' || selectedAd?.computed_status === 'pending') && (
+                <>
+                  <Button 
+                    variant='outline' 
+                    onClick={() => openRejectDialog(selectedAd)}
+                    className='rounded-full px-6 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300'
+                  >
+                    Rejeter
+                  </Button>
+                  <Button 
+                    onClick={() => handleApprove(selectedAd.id)}
+                    disabled={actionLoading === selectedAd.id}
+                    className='rounded-full px-8 bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-100 gap-2'
+                  >
+                    {actionLoading === selectedAd.id ? (
+                      <div className='h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white' />
+                    ) : (
+                      <CheckCircle className='h-4 w-4' />
+                    )}
+                    Approuver la demande
+                  </Button>
+                </>
+              )}
+              {selectedAd?.status === 'approved' && selectedAd.is_active && (
+                <Button 
+                  variant='outline' 
+                  onClick={() => handleExpire(selectedAd.id)}
+                  disabled={actionLoading === selectedAd.id}
+                  className='rounded-full px-6 gap-2'
+                >
+                  <AlertTriangle className='h-4 w-4' />
+                  Marquer comme expiré
                 </Button>
-                <Button onClick={() => handleApprove(selectedAd.id)}>
-                  <CheckCircle className='h-4 w-4 mr-2' />
-                  Approuver
-                </Button>
-              </>
-            )}
-            {selectedAd?.status === 'approved' && selectedAd.is_active && (
-              <Button variant='outline' onClick={() => handleExpire(selectedAd.id)}>
-                <AlertTriangle className='h-4 w-4 mr-2' />
-                Marquer comme expiré
-              </Button>
-            )}
+              )}
+            </div>
+            <Button variant='ghost' onClick={() => setIsDetailDialogOpen(false)} className='rounded-full px-6 text-slate-500'>
+              Fermer
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

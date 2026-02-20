@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "ExpoOnboarding",
-    "slug": "ExpoOnboarding",
+    "name": "Canstory",
+    "slug": "Canstory",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "expoonboarding",
+    "scheme": "Canstory",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

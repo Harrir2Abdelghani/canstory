@@ -6,9 +6,9 @@ import {
   Animated,
   Easing,
   StatusBar,
-  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   SplashView,
   RelaxView,
@@ -18,11 +18,11 @@ import {
   TopBackSkipView,
   CenterNextButton,
 } from './scenes';
-import canstoryLogo from '../assets/images/canstory_logo.png';
 
 const IntroductionAnimationScreen: React.FC = () => {
   const navigation = useNavigation();
   const window = useWindowDimensions();
+  const insets = useSafeAreaInsets();
 
   const [currentPage, setCurrentPage] = useState(0);
 

@@ -21,6 +21,9 @@ import { DoctorProfileModal } from './DoctorProfileModal';
 import { DoctorProfileCompletionModal } from './DoctorProfileCompletionModal';
 import { doctorProfileService } from '../services/doctor-profile.service';
 import { supabase } from '../lib/supabase';
+import { useLanguage } from '../contexts/LanguageContext';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import LanguageModal from '../components/LanguageModal';
 
 const SignInScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -35,6 +38,8 @@ const SignInScreen: React.FC = () => {
   const [showDoctorCompletionModal, setShowDoctorCompletionModal] = useState(false);
   const [checkingDoctorProfile, setCheckingDoctorProfile] = useState(false);
   const [annuaireEntryId, setAnnuaireEntryId] = useState<string | null>(null);
+  const { language, t } = useLanguage();
+  const [showLangModal, setShowLangModal] = useState(false);
 
   const emailBorderAnim = useRef(new Animated.Value(0)).current;
   const passwordBorderAnim = useRef(new Animated.Value(0)).current;
@@ -115,23 +120,23 @@ const SignInScreen: React.FC = () => {
         >
           <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
             <Animated.View style={{ opacity: titleOpacityAnim }}>
-              <Text style={styles.title}>Bienvenue sur Canstory</Text>
-              <Text style={styles.subtitle}>Connectez-vous à votre compte</Text>
+              <Text style={styles.title}>{t('welcome')}</Text>
+              <Text style={styles.subtitle}>{t('login_subtitle')}</Text>
             </Animated.View>
 
             <Animated.View style={[styles.formContainer, { opacity: formOpacityAnim }]}>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email</Text>
+                <Text style={styles.label}>{t('email')}</Text>
                 <Animated.View
                   style={[
                     styles.inputWrapper,
                     { borderColor: emailBorderColor },
                   ]}
                 >
-                  <Text style={styles.icon}>✉️</Text>
+                  <Ionicons name="mail-outline" size={20} color={emailFocused ? '#7b1fa2' : '#999'} style={{ marginRight: 12 }} />
                   <TextInput
                     style={styles.input}
-                    placeholder="votre@email.com"
+                    placeholder={t('email_placeholder') || "votre@email.com"}
                     placeholderTextColor="#bbb"
                     value={email}
                     onChangeText={setEmail}
@@ -143,17 +148,17 @@ const SignInScreen: React.FC = () => {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Mot de passe</Text>
+                <Text style={styles.label}>{t('password')}</Text>
                 <Animated.View
                   style={[
                     styles.inputWrapper,
                     { borderColor: passwordBorderColor },
                   ]}
                 >
-                  <Text style={styles.icon}>🔒</Text>
+                  <Ionicons name="lock-closed-outline" size={20} color={passwordFocused ? '#7b1fa2' : '#999'} style={{ marginRight: 12 }} />
                   <TextInput
                     style={styles.input}
-                    placeholder="••••••••"
+                    placeholder={t('password_placeholder') || "••••••••"}
                     placeholderTextColor="#bbb"
                     value={password}
                     onChangeText={setPassword}
@@ -162,7 +167,7 @@ const SignInScreen: React.FC = () => {
                     onBlur={handlePasswordBlur}
                   />
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                    <Text style={styles.eyeIconText}>{showPassword ? '👁️' : '👁️‍🗨️'}</Text>
+                    <Ionicons name={showPassword ? "eye-outline" : "eye-off-outline"} size={22} color="#7b1fa2" />
                   </TouchableOpacity>
                 </Animated.View>
               </View>
@@ -171,7 +176,7 @@ const SignInScreen: React.FC = () => {
                 style={styles.forgotButton}
                 onPress={() => navigation.navigate('ForgotPassword' as never)}
               >
-                <Text style={styles.forgotText}>Mot de passe oublié?</Text>
+                <Text style={styles.forgotText}>{t('forgot_password')}</Text>
               </MyPressable>
 
               <MyPressable
@@ -180,12 +185,12 @@ const SignInScreen: React.FC = () => {
                 onPress={async () => {
                   if (loading) return;
                   if (!email || !password) {
-                    Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+                    Alert.alert(t('error') || 'Erreur', t('error_fill_all_fields') || 'Veuillez remplir tous les champs', [{ text: t('ok') || 'OK' }]);
                     return;
                   }
                   const { error } = await signIn({ email, password });
                   if (error) {
-                    Alert.alert('Erreur de connexion', error.message);
+                    Alert.alert(t('error_login') || 'Erreur de connexion', error.message, [{ text: t('ok') || 'OK' }]);
                   } else {
                     setTimeout(async () => {
                       setCheckingDoctorProfile(true);
@@ -197,7 +202,7 @@ const SignInScreen: React.FC = () => {
                           .single();
 
                         if (!userData) {
-                          Alert.alert('Erreur', 'Données utilisateur introuvables');
+                          Alert.alert(t('error') || 'Erreur', t('user_not_found') || 'Données utilisateur introuvables', [{ text: t('ok') || 'OK' }]);
                           setCheckingDoctorProfile(false);
                           return;
                         }
@@ -210,8 +215,9 @@ const SignInScreen: React.FC = () => {
                         if (userRole === 'doctor') {
                           if (!isActive) {
                             Alert.alert(
-                              'Accès refusé',
-                              'Votre profil n\'est pas encore activé. Veuillez attendre l\'approbation de l\'administrateur.'
+                              t('access_denied') || 'Accès refusé',
+                              t('profile_not_active') || 'Votre profil n\'est pas encore activé. Veuillez attendre l\'approbation de l\'administrateur.',
+                              [{ text: t('ok') || 'OK' }]
                             );
                             setCheckingDoctorProfile(false);
                             await supabase.auth.signOut();
@@ -246,7 +252,7 @@ const SignInScreen: React.FC = () => {
                       } catch (err) {
                         console.error('Error checking user profile:', err);
                         setCheckingDoctorProfile(false);
-                        Alert.alert('Erreur', 'Une erreur est survenue lors de la connexion');
+                        Alert.alert(t('error') || 'Erreur', t('error_occurred') || 'Une erreur est survenue lors de la connexion', [{ text: t('ok') || 'OK' }]);
                       }
                     }, 500);
                   }
@@ -256,17 +262,17 @@ const SignInScreen: React.FC = () => {
                 {loading ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text style={styles.signInButtonText}>Se connecter</Text>
+                  <Text style={styles.signInButtonText}>{t('login_button')}</Text>
                 )}
               </MyPressable>
 
 
               <View style={styles.signUpContainer}>
-                <Text style={styles.signUpText}>Pas encore de compte? </Text>
+                <Text style={styles.signUpText}>{t('no_account')} </Text>
                 <MyPressable
                   onPress={() => navigation.navigate('SignUp' as never)}
                 >
-                  <Text style={styles.signUpLink}>S'inscrire</Text>
+                  <Text style={styles.signUpLink}>{t('signup_link')}</Text>
                 </MyPressable>
               </View>
             </Animated.View>
@@ -300,6 +306,23 @@ const SignInScreen: React.FC = () => {
           }}
         />
       )}
+
+      <View style={[styles.languageContainer, { top: insets.top + 16, right: 20 }]}>
+        <TouchableOpacity 
+          style={styles.languageButton} 
+          onPress={() => setShowLangModal(true)}
+          activeOpacity={0.6}
+        >
+          <View style={styles.langIndicator}>
+            <Text style={styles.languageText}>{language}</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      <LanguageModal 
+        visible={showLangModal} 
+        onClose={() => setShowLangModal(false)} 
+      />
     </AnimatedBackground>
   );
 };
@@ -442,6 +465,31 @@ const styles = StyleSheet.create({
   },
   eyeIconText: {
     fontSize: 20,
+  },
+  languageContainer: {
+    position: 'absolute',
+    zIndex: 1000,
+  },
+  languageButton: {
+    padding: 4,
+  },
+  langIndicator: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1.5,
+    borderColor: '#7b1fa2',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  languageText: {
+    color: '#7b1fa2',
+    fontSize: 12,
+    fontWeight: '900',
   },
 });
 

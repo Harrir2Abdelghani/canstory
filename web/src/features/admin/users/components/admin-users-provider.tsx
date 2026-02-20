@@ -12,6 +12,8 @@ interface AdminUsersContextType {
   setEditDialogOpen: (open: boolean) => void
   createDialogOpen: boolean
   setCreateDialogOpen: (open: boolean) => void
+  detailDialogOpen: boolean
+  setDetailDialogOpen: (open: boolean) => void
 }
 
 const AdminUsersContext = createContext<AdminUsersContextType | undefined>(undefined)
@@ -22,6 +24,7 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false)
 
   return (
     <AdminUsersContext.Provider
@@ -36,6 +39,8 @@ export function AdminUsersProvider({ children }: { children: React.ReactNode }) 
         setEditDialogOpen,
         createDialogOpen,
         setCreateDialogOpen,
+        detailDialogOpen,
+        setDetailDialogOpen,
       }}
     >
       {children}

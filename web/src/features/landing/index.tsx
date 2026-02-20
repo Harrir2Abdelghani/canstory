@@ -438,11 +438,6 @@ export function Landing() {
                   </div>
 
                   <div className="min-w-0 px-1">
-                    <p className="text-2xl md:text-3xl font-bold text-primary dark:text-blue-400">{stats[2].value}</p>
-                    <p className="text-xs md:text-sm opacity-60 dark:opacity-50 dark:text-slate-400">{stats[2].label}</p>
-                  </div>
-
-                  <div className="min-w-0 px-1">
                     <p className="text-2xl md:text-3xl font-bold text-primary dark:text-blue-400">{stats[3].value}</p>
                     <p className="text-xs md:text-sm opacity-60 dark:opacity-50 dark:text-slate-400">{stats[3].label}</p>
                   </div>

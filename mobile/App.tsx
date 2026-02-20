@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { AuthProvider } from './src/contexts/AuthContext';
+import { LanguageProvider } from './src/contexts/LanguageContext';
 import IntroductionAnimationScreen from './src/IntroductionAnimationScreen';
 import {
   SignInScreen,
@@ -12,6 +13,9 @@ import {
   ResetPasswordScreen,
   WelcomeBackScreen,
   MainHomeScreen,
+  NotificationsScreen,
+  ProfileScreen,
+  AboutScreen,
 } from './src/screens';
 import BottomTabNavigator from './src/navigation/BottomTabNavigator';
 import EditProfileScreen from './src/screens/app/EditProfileScreen';
@@ -25,20 +29,25 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AuthProvider>
-          <NavigationContainer>
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="Onboarding" component={IntroductionAnimationScreen} />
-              <Stack.Screen name="SignIn" component={SignInScreen} />
-              <Stack.Screen name="SignUp" component={SignUpScreen} />
-              <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-              <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-              <Stack.Screen name="Home" component={WelcomeBackScreen} />
-              <Stack.Screen name="MainHome" component={BottomTabNavigator} />
-              <Stack.Screen name="EditProfile" component={EditProfileScreen} />
-              <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
-              <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
-            </Stack.Navigator>
-          </NavigationContainer>
+          <LanguageProvider>
+            <NavigationContainer>
+              <Stack.Navigator screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="Onboarding" component={IntroductionAnimationScreen} />
+                <Stack.Screen name="SignIn" component={SignInScreen} />
+                <Stack.Screen name="SignUp" component={SignUpScreen} />
+                <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+                <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+                <Stack.Screen name="Home" component={WelcomeBackScreen} />
+                <Stack.Screen name="MainHome" component={BottomTabNavigator} />
+                <Stack.Screen name="Notifications" component={NotificationsScreen} />
+                <Stack.Screen name="Profile" component={ProfileScreen} />
+                <Stack.Screen name="About" component={AboutScreen} />
+                <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+                <Stack.Screen name="LanguageSelection" component={LanguageSelectionScreen} />
+                <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
+              </Stack.Navigator>
+            </NavigationContainer>
+          </LanguageProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

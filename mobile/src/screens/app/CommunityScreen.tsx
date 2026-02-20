@@ -3,9 +3,12 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AnimatedBackground from '../../components/AnimatedBackground';
 import { ApiService } from '../../services/api.service';
+import { useLanguage } from '../../contexts/LanguageContext';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const CommunityScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
+  const { t } = useLanguage();
   const [posts, setPosts] = useState<any[]>([]);
 
   useEffect(() => {
@@ -25,9 +28,9 @@ const CommunityScreen: React.FC = () => {
     <AnimatedBackground>
       <View style={[styles.container, { paddingTop: insets.top + 20 }]}>
         <View style={styles.header}>
-          <Text style={styles.title}>Communauté</Text>
-          <TouchableOpacity style={styles.addButton}>
-            <Text style={styles.addButtonText}>+</Text>
+          <Text style={styles.title}>{t('community_title') || 'Communauté'}</Text>
+          <TouchableOpacity style={styles.addButton} activeOpacity={0.75}>
+            <Ionicons name="add" size={30} color="white" />
           </TouchableOpacity>
         </View>
 
@@ -42,7 +45,7 @@ const CommunityScreen: React.FC = () => {
                 </View>
                 <View style={styles.postHeaderContent}>
                   <Text style={styles.postAuthor}>
-                    {post.is_anonymous ? 'Anonyme' : post.user?.full_name}
+                    {post.is_anonymous ? (t('anonymous') || 'Anonyme') : post.user?.full_name}
                   </Text>
                   <Text style={styles.postTime}>Il y a 2h</Text>
                 </View>
@@ -50,8 +53,14 @@ const CommunityScreen: React.FC = () => {
               <Text style={styles.postTitle}>{post.title}</Text>
               <Text style={styles.postContent} numberOfLines={3}>{post.content}</Text>
               <View style={styles.postFooter}>
-                <Text style={styles.postStat}>❤️ {post.likes_count}</Text>
-                <Text style={styles.postStat}>💬 {post.comments_count}</Text>
+                <View style={styles.statRow}>
+                  <Ionicons name="heart-outline" size={16} color="#ef5350" />
+                  <Text style={styles.postStat}>{post.likes_count}</Text>
+                </View>
+                <View style={styles.statRow}>
+                  <Ionicons name="chatbubble-outline" size={16} color="#7b1fa2" />
+                  <Text style={styles.postStat}>{post.comments_count}</Text>
+                </View>
               </View>
             </TouchableOpacity>
           ))}
@@ -72,8 +81,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#7b1fa2',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#7b1fa2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 4,
   },
-  addButtonText: { fontSize: 24, fontWeight: '600', color: 'white' },
   postCard: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 16,
@@ -98,8 +111,9 @@ const styles = StyleSheet.create({
   postTime: { fontSize: 12, fontWeight: '500', color: '#999' },
   postTitle: { fontSize: 16, fontWeight: '700', color: '#333', marginBottom: 8 },
   postContent: { fontSize: 14, fontWeight: '400', color: '#666', lineHeight: 20, marginBottom: 12 },
-  postFooter: { flexDirection: 'row', gap: 16 },
-  postStat: { fontSize: 13, fontWeight: '600', color: '#888' },
+  postFooter: { flexDirection: 'row', gap: 20 },
+  statRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  postStat: { fontSize: 13, fontWeight: '600', color: '#666' },
 });
 
 export default CommunityScreen;

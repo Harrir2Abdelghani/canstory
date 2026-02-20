@@ -544,6 +544,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='email@example.com'
                 value={formData.email}
                 onChange={(e) => handleFormChange('email', e.target.value)}
+                disabled={mode === 'edit'}
                 className='border-slate-300'
               />
             </div>
@@ -574,7 +575,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
           <div className='grid grid-cols-2 gap-4'>
             <div className='grid gap-2'>
               <Label htmlFor='annuaire_role'>Rôle *</Label>
-              <Select value={formData.annuaire_role} onValueChange={(value) => handleFormChange('annuaire_role', value)}>
+              <Select value={formData.annuaire_role} onValueChange={(value) => handleFormChange('annuaire_role', value)} disabled={mode === 'edit'}>
                 <SelectTrigger className='border-slate-300'>
                   <SelectValue placeholder='Sélectionner un rôle' />
                 </SelectTrigger>
@@ -596,7 +597,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
           <div className='grid grid-cols-2 gap-4'>
             <div className='grid gap-2'>
               <Label htmlFor='wilaya'>Wilaya *</Label>
-              <Select value={formData.wilaya} onValueChange={(value) => handleFormChange('wilaya', value)}>
+              <Select value={formData.wilaya} onValueChange={(value) => handleFormChange('wilaya', value)} disabled={mode === 'edit'}>
                 <SelectTrigger className='border-slate-300'>
                   <SelectValue placeholder='Sélectionner une wilaya' />
                 </SelectTrigger>
@@ -611,7 +612,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
             </div>
             <div className='grid gap-2'>
               <Label htmlFor='commune'>Commune *</Label>
-              <Select value={formData.commune} onValueChange={(value) => handleFormChange('commune', value)} disabled={!formData.wilaya}>
+              <Select value={formData.commune} onValueChange={(value) => handleFormChange('commune', value)} disabled={mode === 'edit' || !formData.wilaya}>
                 <SelectTrigger className='border-slate-300'>
                   <SelectValue placeholder={formData.wilaya ? 'Sélectionner une commune' : 'Sélectionnez d\'abord une wilaya'} />
                 </SelectTrigger>
@@ -642,6 +643,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Ex: Oncologie'
                 value={formData.specialization}
                 onChange={(e) => handleFormChange('specialization', e.target.value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -652,6 +654,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Ex: MED-12345'
                 value={formData.licenseNumber}
                 onChange={(e) => handleFormChange('licenseNumber', e.target.value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -663,6 +666,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                   placeholder="Nom de l'hôpital ou de la clinique"
                   value={formData.hospitalAffiliation}
                   onChange={(e) => handleFormChange('hospitalAffiliation', e.target.value)}
+                  disabled={mode === 'edit'}
                 />
               </div>
             )}
@@ -675,6 +679,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                   placeholder='Adresse du cabinet'
                   value={formData.officeAddress}
                   onChange={(e) => handleFormChange('officeAddress', e.target.value)}
+                  disabled={mode === 'edit'}
                 />
               </div>
             )}
@@ -689,6 +694,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Ex: 5000'
                 value={formData.consultationFee}
                 onChange={(e) => handleFormChange('consultationFee', e.target.value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -701,6 +707,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Ex: 12'
                 value={formData.yearsOfExperience}
                 onChange={(e) => handleFormChange('yearsOfExperience', e.target.value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -711,6 +718,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Français, Arabe, Anglais'
                 value={formData.languagesSpoken}
                 onChange={(e) => handleFormChange('languagesSpoken', e.target.value)}
+                disabled={mode === 'edit'}
                 rows={2}
               />
             </div>
@@ -722,6 +730,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder={"Diplôme de médecine - Université d'Alger"}
                 value={formData.education}
                 onChange={(e) => handleFormChange('education', e.target.value)}
+                disabled={mode === 'edit'}
                 rows={2}
               />
             </div>
@@ -733,6 +742,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder={"Certification Radiothérapie Avancée"}
                 value={formData.certifications}
                 onChange={(e) => handleFormChange('certifications', e.target.value)}
+                disabled={mode === 'edit'}
                 rows={2}
               />
             </div>
@@ -745,6 +755,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
               <Switch
                 checked={formData.acceptsNewPatients}
                 onCheckedChange={(value) => handleFormChange('acceptsNewPatients', value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -756,6 +767,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                   placeholder='TCC, Psychanalyse, Thérapie de groupe'
                   value={formData.therapyTypes}
                   onChange={(e) => handleFormChange('therapyTypes', e.target.value)}
+                  disabled={mode === 'edit'}
                   rows={2}
                 />
               </div>
@@ -773,6 +785,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Nom du centre de lutte contre le cancer'
                 value={formData.centerName}
                 onChange={(e) => handleFormChange('centerName', e.target.value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -783,6 +796,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Ex: CC-12345'
                 value={formData.registrationNumber}
                 onChange={(e) => handleFormChange('registrationNumber', e.target.value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -813,6 +827,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='https://example.com'
                 value={formData.website}
                 onChange={(e) => handleFormChange('website', e.target.value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -825,6 +840,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Ex: 100'
                 value={formData.bedCapacity}
                 onChange={(e) => handleFormChange('bedCapacity', e.target.value)}
+                disabled={mode === 'edit'}
               />
             </div>
           </>
@@ -840,6 +856,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Nom du laboratoire'
                 value={formData.labName}
                 onChange={(e) => handleFormChange('labName', e.target.value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -850,6 +867,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Ex: LAB-12345'
                 value={formData.registrationNumber}
                 onChange={(e) => handleFormChange('registrationNumber', e.target.value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -870,6 +888,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Analyses sanguines, Radiologie, IRM'
                 value={formData.testTypes}
                 onChange={(e) => handleFormChange('testTypes', e.target.value)}
+                disabled={mode === 'edit'}
                 rows={2}
               />
             </div>
@@ -882,6 +901,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
               <Switch
                 checked={formData.hasHomeService}
                 onCheckedChange={(value) => handleFormChange('hasHomeService', value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -894,6 +914,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Ex: 24'
                 value={formData.turnaroundTime}
                 onChange={(e) => handleFormChange('turnaroundTime', e.target.value)}
+                disabled={mode === 'edit'}
               />
             </div>
           </>
@@ -909,6 +930,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Nom de la pharmacie'
                 value={formData.pharmacyName}
                 onChange={(e) => handleFormChange('pharmacyName', e.target.value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -919,6 +941,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Ex: PHARM-12345'
                 value={formData.registrationNumber}
                 onChange={(e) => handleFormChange('registrationNumber', e.target.value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -950,6 +973,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
               <Switch
                 checked={formData.hasDelivery}
                 onCheckedChange={(value) => handleFormChange('hasDelivery', value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -961,6 +985,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
               <Switch
                 checked={formData.is24Hours}
                 onCheckedChange={(value) => handleFormChange('is24Hours', value)}
+                disabled={mode === 'edit'}
               />
             </div>
           </>
@@ -976,6 +1001,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Nom de l&apos;association'
                 value={formData.associationName}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFormChange('associationName', e.target.value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -986,6 +1012,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Ex: ASSOC-12345'
                 value={formData.registrationNumber}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFormChange('registrationNumber', e.target.value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -996,6 +1023,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Adresse complète'
                 value={formData.address}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleFormChange('address', e.target.value)}
+                disabled={mode === 'edit'}
               />
             </div>
 
@@ -1006,6 +1034,7 @@ export function AnnuaireFormDialog({ mode, entry, onClose, onSuccess, wilayas, c
                 placeholder='Description de l&apos;association'
                 value={formData.description}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleFormChange('description', e.target.value)}
+                disabled={mode === 'edit'}
                 rows={2}
               />
             </div>

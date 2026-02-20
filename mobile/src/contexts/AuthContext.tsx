@@ -11,6 +11,7 @@ interface AuthContextType extends AuthState {
   updateProfile: (data: UpdateProfileData) => Promise<{ error: Error | null }>;
   refreshUser: () => Promise<void>;
   deleteAccount: () => Promise<{ error: Error | null }>;
+  resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -408,6 +409,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      setState(prev => ({ ...prev, loading: true }));
+
+      // Check if user exists in the public.users table first
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (userError) {
+        console.error('Error checking user existence:', userError);
+        setState(prev => ({ ...prev, loading: false }));
+        return { error: userError as any };
+      }
+
+      if (!userData) {
+        setState(prev => ({ ...prev, loading: false }));
+        return { 
+          error: { 
+            name: 'AuthError',
+            message: 'Aucun compte n\'est associé à cette adresse email.',
+            status: 404 
+          } as AuthError 
+        };
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'canstory://reset-password',
+      });
+      setState(prev => ({ ...prev, loading: false }));
+      return { error };
+    } catch (error) {
+      console.error('Reset password error:', error);
+      setState(prev => ({ ...prev, loading: false }));
+      return { error: error as AuthError };
+    }
+  };
+
   const value: AuthContextType = {
     ...state,
     signUp,
@@ -416,6 +457,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateProfile,
     refreshUser,
     deleteAccount,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
